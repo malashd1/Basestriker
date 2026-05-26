@@ -389,6 +389,60 @@ function updateMissionProgress(run: RunResult) {
   }
 }
 
+// ── Weekly Top-10 Badge — ERC-721 metadata + image endpoints ──────────
+//
+// The BaseStrikerBadgeV2 contract on Base mainnet computes its tokenURI as
+// `${baseURI}/<weekId>/<rank>`. Wallets fetch that URL expecting an
+// ERC-721 metadata JSON. We serve it here, plus a static image redirect
+// to the pre-generated PNG.
+//
+// Tier mapping:
+//   rank 1     → GOLD
+//   rank 2     → SILVER
+//   rank 3     → BRONZE
+//   rank 4-10  → TOP-10 (cyan)
+
+function badgeTier(rank: number): { tier: string; label: string } {
+  if (rank === 1) return { tier: 'GOLD',   label: 'First Place'  };
+  if (rank === 2) return { tier: 'SILVER', label: 'Second Place' };
+  if (rank === 3) return { tier: 'BRONZE', label: 'Third Place'  };
+  return { tier: 'TOP-10', label: `Top 10 · #${rank}` };
+}
+
+app.get('/api/badge/meta/:weekId/:rank', (req, res) => {
+  const weekId = parseInt(req.params.weekId, 10);
+  const rank   = parseInt(req.params.rank, 10);
+  if (!Number.isFinite(weekId) || weekId < 0 || weekId > 9999) return res.status(400).json({ error: 'bad_week' });
+  if (!Number.isFinite(rank)   || rank < 1   || rank > 10)    return res.status(400).json({ error: 'bad_rank' });
+
+  const { tier, label } = badgeTier(rank);
+  // Image is hosted statically at basestriker.xyz/badges/week-N-rank-M.png.
+  // The PNG generator emits all 10 ranks per week; backend just points to
+  // the static file. Different week IDs reuse the same template until the
+  // operator regenerates week-specific variants.
+  const imageUrl = `https://basestriker.xyz/badges/week-${weekId}-rank-${rank}.png`;
+  // Fallback to week 1 art if the week-specific PNG hasn't been generated
+  // yet — keeps the tokenURI valid for any future week.
+  const fallback = `https://basestriker.xyz/badges/week-1-rank-${rank}.png`;
+
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.json({
+    name: `BaseStriker · Week ${weekId} · #${rank} ${tier}`,
+    description:
+      `Soulbound badge for placing ${label} on the BaseStriker weekly ` +
+      `leaderboard, Week ${weekId}. Non-transferable. Earned, not bought.`,
+    image: imageUrl,
+    image_fallback: fallback,
+    external_url: 'https://basestriker.xyz',
+    attributes: [
+      { trait_type: 'Week',      value: weekId },
+      { trait_type: 'Rank',      value: rank   },
+      { trait_type: 'Tier',      value: tier   },
+      { trait_type: 'Soulbound', value: 'Yes'  },
+    ],
+  });
+});
+
 app.get('/api/tournament/today', (_req, res) => {
   const spec = todayTournament();
   res.json(spec);
