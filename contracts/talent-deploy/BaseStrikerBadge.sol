@@ -1,13 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/// @title BaseStrikerBadge — Soulbound (non-transferable) NFT for weekly top-100 players.
+/// @title BaseStrikerBadge — Soulbound (non-transferable) NFT for weekly Top-10 players.
 ///
 /// Self-contained ERC-721 implementation (no OpenZeppelin import) so the file
 /// drops straight into Remix and deploys without any setup.
 ///
+/// Eligibility: rank 1-10 of the weekly leaderboard. Enforced on-chain via
+/// `MAX_RANK`: even if the backend signs a higher rank by mistake, the mint
+/// reverts. Only the actual top 10 of each week can ever hold this badge.
+///
 /// Mint flow:
-///   1. Player finishes a week inside the BaseStriker top 100.
+///   1. Player finishes a week inside the BaseStriker Top 10.
 ///   2. Backend computes a signed authorisation: `keccak256(player, weekId, rank, chainId, this)`
 ///      signed by `signer`.
 ///   3. Player calls `mint(weekId, rank, signature)` paying `mintFee` (wei).
@@ -16,8 +20,12 @@ pragma solidity ^0.8.20;
 /// On-chain, every mint produces a tx with the player as `msg.sender` —
 /// indexable by Talent Protocol and any explorer.
 contract BaseStrikerBadge {
-    string public constant name   = "BaseStriker Badge";
-    string public constant symbol = "BSTRK";
+    string  public constant name     = "BaseStriker Weekly Top 10 Badge";
+    string  public constant symbol   = "BSTRK10";
+
+    /// Hard cap — only ranks 1-10 can mint. Backend-issued signatures with
+    /// `rank > MAX_RANK` are rejected on-chain regardless of signer.
+    uint32  public constant MAX_RANK = 10;
 
     // ── Ownership / config ───────────────────────────────────────────────
     address public owner;       // can rotate signer + treasury + fee
@@ -58,6 +66,7 @@ contract BaseStrikerBadge {
     error AlreadyMinted();
     error BadSignature();
     error NonTransferable();
+    error RankOutOfRange();
 
     modifier onlyOwner() { if (msg.sender != owner) revert NotOwner(); _; }
 
@@ -81,6 +90,7 @@ contract BaseStrikerBadge {
     /// `sig` is a 65-byte ECDSA signature in (r, s, v) packed form.
     function mint(uint64 weekId, uint32 rank, bytes calldata sig) external payable {
         if (msg.value != mintFee) revert FeeMismatch();
+        if (rank == 0 || rank > MAX_RANK) revert RankOutOfRange();
 
         bytes32 key = keccak256(abi.encode(msg.sender, weekId, rank));
         if (minted[key]) revert AlreadyMinted();

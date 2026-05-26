@@ -5,8 +5,8 @@ Three single-file Solidity contracts to deploy on **Base mainnet** (chain ID `84
 | File | What it does | Approx gas (Base) |
 |---|---|---|
 | `BaseStrikerPaymentRouter.sol` | Routes every USDC shop payment with a typed `ItemPaid` event | ~0.6M gas (~$0.20) |
-| `BaseStrikerLeaderboardCheckpoint.sol` | Append-only log of weekly top-100 root hashes | ~0.4M gas (~$0.13) |
-| `BaseStrikerBadge.sol` | Soulbound NFT for weekly top-100 players (ERC-721 + ERC-5192) | ~1.0M gas (~$0.33) |
+| `BaseStrikerLeaderboardCheckpoint.sol` | Append-only log of weekly top-10 root hashes | ~0.4M gas (~$0.13) |
+| `BaseStrikerBadge.sol` | Soulbound NFT for weekly Top-10 players, MAX_RANK=10 enforced on-chain (ERC-721 + ERC-5192) | ~1.0M gas (~$0.33) |
 
 Total cost: **~$0.65 in ETH at current Base gas**. Make sure the deployer wallet has at least **0.001 ETH** on Base.
 
@@ -101,7 +101,7 @@ Talent will index:
 ## Next steps after Talent listing
 
 1. **Switch frontend USDC payments** to call `PaymentRouter.payForItem(sku, qty, amount)` instead of plain `USDC.transfer(treasury, amount)`. This routes new traffic through the contract — every shop purchase becomes a tracked event. Code change: ~10 lines in `src/web3/payments.ts`.
-2. **Start posting weekly checkpoints** to LeaderboardCheckpoint. Add a Sunday-midnight cron in the backend that snapshots top-100, computes the root, signs + sends one tx.
+2. **Start posting weekly checkpoints** to LeaderboardCheckpoint. Add a Sunday-midnight cron in the backend that snapshots top-10, computes the root, signs + sends one tx.
 3. **Wire up Badge mint UI** — gate at the `/badge` page on `basestriker.xyz`, backend issues the ECDSA payload, frontend calls `BaseStrikerBadge.mint(...)`.
 
 Each of these is a small follow-up that compounds Talent's "ongoing activity" signal.
