@@ -216,10 +216,12 @@ export function renderShop(
           const origLabel = buyBtn.textContent;
           buyBtn.textContent = 'CONFIRM IN WALLET…';
           try {
-            // 1. On-chain USDC.transfer(treasury, total × 1e6). `payUsdc`
-            //    awaits the tx receipt internally, so `kind: 'tx'` means
-            //    the transfer has already landed on Base.
-            const outcome = await payUsdc(it.usdc, qty);
+            // 1. On-chain payment. Goes through PaymentRouter on Base mainnet
+            //    (emits ItemPaid event with the SKU = item id), falls back to
+            //    direct USDC.transfer if the router isn't configured for the
+            //    current network. Either way, `kind: 'tx'` means the payment
+            //    has been broadcast.
+            const outcome = await payUsdc(it.usdc, qty, it.id);
 
             if (outcome.kind === 'no-wallet') { refresh(); return; }
 
