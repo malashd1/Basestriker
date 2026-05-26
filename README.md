@@ -106,7 +106,7 @@ cd backend && npm run build # → backend/dist/
 |---|---|
 | [`BaseStrikerPaymentRouter`](contracts/talent-deploy/BaseStrikerPaymentRouter.sol) | [`0xc08bda33E32Da9255f21BB57afF78e6d1EAb6789`](https://basescan.org/address/0xc08bda33E32Da9255f21BB57afF78e6d1EAb6789) |
 | [`BaseStrikerLeaderboardCheckpoint`](contracts/talent-deploy/BaseStrikerLeaderboardCheckpoint.sol) | [`0xAdBD63254aaF3836cE8295E3E39B3B3f25aF1219`](https://basescan.org/address/0xAdBD63254aaF3836cE8295E3E39B3B3f25aF1219) |
-| [`BaseStrikerBadge`](contracts/talent-deploy/BaseStrikerBadge.sol) (Top-10 SBT) | [`0xd1C53618996A75f2887eb1c1D7b1Df17533E1A1D`](https://basescan.org/address/0xd1C53618996A75f2887eb1c1D7b1Df17533E1A1D) |
+| [`BaseStrikerBadgeV2`](contracts/talent-deploy/BaseStrikerBadgeV2.sol) (Top-10 SBT, dynamic tokenURI) | [`0xCf3d1eFd0f0862870d651AC9f40Ed65f76A41435`](https://basescan.org/address/0xCf3d1eFd0f0862870d651AC9f40Ed65f76A41435) |
 | Treasury (USDC recipient EOA) | [`0xe569A1f798D14809A076ea1c11cb13d698DFcE64`](https://basescan.org/address/0xe569A1f798D14809A076ea1c11cb13d698DFcE64) |
 | Backend signer EOA (claims) | [`0x4aD73779955087673e089B29812e6c1451B8E17b`](https://basescan.org/address/0x4aD73779955087673e089B29812e6c1451B8E17b) |
 
