@@ -10,9 +10,15 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MockUSDC is ERC20 {
-    constructor() ERC20("USD Coin", "USDC") {}
-    function mint(address to, uint256 amount) external { _mint(to, amount); }
-    function decimals() public pure override returns (uint8) { return 6; }
+    constructor() ERC20("USD Coin", "USDC") { }
+
+    function mint(address to, uint256 amount) external {
+        _mint(to, amount);
+    }
+
+    function decimals() public pure override returns (uint8) {
+        return 6;
+    }
 }
 
 contract PaymentRouterTest is Test {
@@ -59,7 +65,7 @@ contract PaymentRouterTest is Test {
     function testBuyShipETHMintsAndForwardsValue() public {
         uint256 treasuryBefore = treasury.balance;
         vm.prank(buyer);
-        uint256 newId = router.buyShipETH{value: 0.005 ether}(1);
+        uint256 newId = router.buyShipETH{ value: 0.005 ether }(1);
         assertEq(shipNft.ownerOf(newId), buyer);
         assertEq(shipNft.tierOf(newId), 1);
         assertEq(treasury.balance - treasuryBefore, 0.005 ether);
@@ -68,7 +74,7 @@ contract PaymentRouterTest is Test {
     function testBuyShipETHRevertsWithoutEnoughValue() public {
         vm.expectRevert(PaymentRouter.InsufficientPayment.selector);
         vm.prank(buyer);
-        router.buyShipETH{value: 0.001 ether}(1);
+        router.buyShipETH{ value: 0.001 ether }(1);
     }
 
     function testBuyShipUSDCTransfersAndMints() public {
@@ -105,7 +111,7 @@ contract PaymentRouterTest is Test {
     function testRevertOnUnknownItem() public {
         vm.expectRevert(PaymentRouter.UnknownItem.selector);
         vm.prank(buyer);
-        router.buyEquipmentETH{value: 1 ether}(999_999);
+        router.buyEquipmentETH{ value: 1 ether }(999_999);
     }
 
     function testOnlyOwnerCanSetItem() public {
@@ -121,6 +127,6 @@ contract PaymentRouterTest is Test {
         // ship item id=2 is a ship; buying it through buyEquipmentETH should revert
         vm.expectRevert(PaymentRouter.UnknownItem.selector);
         vm.prank(buyer);
-        router.buyEquipmentETH{value: 0.005 ether}(2);
+        router.buyEquipmentETH{ value: 0.005 ether }(2);
     }
 }

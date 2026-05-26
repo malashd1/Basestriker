@@ -23,10 +23,10 @@ contract BaseStrikerLeaderboardCheckpoint {
     address public writer;
 
     struct Checkpoint {
-        uint64  weekId;        // ISO-week index (e.g. weeks since Unix epoch / 7d)
-        uint64  rowCount;      // number of leaderboard rows hashed in
-        uint128 timestamp;     // when the writer posted it
-        bytes32 root;          // keccak256(packed rows) — see backend/src/shared/replay.ts
+        uint64 weekId; // ISO-week index (e.g. weeks since Unix epoch / 7d)
+        uint64 rowCount; // number of leaderboard rows hashed in
+        uint128 timestamp; // when the writer posted it
+        bytes32 root; // keccak256(packed rows) — see backend/src/shared/replay.ts
     }
 
     /// Monotonically increasing index. `checkpoints[i]` is the i-th checkpoint
@@ -39,11 +39,7 @@ contract BaseStrikerLeaderboardCheckpoint {
     mapping(uint64 => uint256) public latestForWeek;
 
     event CheckpointPosted(
-        uint64  indexed weekId,
-        uint64           rowCount,
-        bytes32 indexed  root,
-        uint256          index,
-        uint256          timestamp
+        uint64 indexed weekId, uint64 rowCount, bytes32 indexed root, uint256 index, uint256 timestamp
     );
     event WriterUpdated(address indexed previous, address indexed next);
     event OwnerTransferred(address indexed previous, address indexed next);
@@ -53,12 +49,18 @@ contract BaseStrikerLeaderboardCheckpoint {
     error ZeroAddress();
     error ZeroRoot();
 
-    modifier onlyOwner()  { if (msg.sender != owner)  revert NotOwner();  _; }
-    modifier onlyWriter() { if (msg.sender != writer) revert NotWriter(); _; }
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert NotOwner();
+        _;
+    }
+    modifier onlyWriter() {
+        if (msg.sender != writer) revert NotWriter();
+        _;
+    }
 
     constructor(address _writer) {
         if (_writer == address(0)) revert ZeroAddress();
-        owner  = msg.sender;
+        owner = msg.sender;
         writer = _writer;
         emit OwnerTransferred(address(0), msg.sender);
         emit WriterUpdated(address(0), _writer);
@@ -79,12 +81,11 @@ contract BaseStrikerLeaderboardCheckpoint {
     /// `rowCount` is informational — exact number of rows hashed (≤ 100).
     function postCheckpoint(uint64 weekId, uint64 rowCount, bytes32 root) external onlyWriter {
         if (root == bytes32(0)) revert ZeroRoot();
-        checkpoints.push(Checkpoint({
-            weekId:    weekId,
-            rowCount:  rowCount,
-            timestamp: uint128(block.timestamp),
-            root:      root
-        }));
+        checkpoints.push(
+            Checkpoint({
+                weekId: weekId, rowCount: rowCount, timestamp: uint128(block.timestamp), root: root
+            })
+        );
         uint256 idx = checkpoints.length - 1;
         latestForWeek[weekId] = idx;
         emit CheckpointPosted(weekId, rowCount, root, idx, block.timestamp);

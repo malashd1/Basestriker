@@ -19,9 +19,12 @@ contract ShipNFT is ERC721, Ownable {
 
     string private constant BASE_URI = "https://meta.basestriker.xyz/ship/";
 
-    modifier onlyMinter() { if (!minters[msg.sender]) revert NotMinter(); _; }
+    modifier onlyMinter() {
+        if (!minters[msg.sender]) revert NotMinter();
+        _;
+    }
 
-    constructor(address owner_) ERC721("BaseStriker Ship", "BSTR-SHIP") Ownable(owner_) {}
+    constructor(address owner_) ERC721("BaseStriker Ship", "BSTR-SHIP") Ownable(owner_) { }
 
     function setMinter(address m, bool ok) external onlyOwner {
         minters[m] = ok;
@@ -30,11 +33,15 @@ contract ShipNFT is ERC721, Ownable {
 
     function mint(address to, uint8 tier) external onlyMinter returns (uint256 id) {
         if (tier > 4) revert InvalidTier();
-        unchecked { id = ++totalMinted; }
+        unchecked {
+            id = ++totalMinted;
+        }
         tierOf[id] = tier;
         _safeMint(to, id);
         emit ShipMinted(to, id, tier);
     }
 
-    function _baseURI() internal pure override returns (string memory) { return BASE_URI; }
+    function _baseURI() internal pure override returns (string memory) {
+        return BASE_URI;
+    }
 }

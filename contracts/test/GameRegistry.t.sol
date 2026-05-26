@@ -21,15 +21,23 @@ contract GameRegistryTest is Test {
         registry = new GameRegistry(owner, signer);
     }
 
-    function _sign(address p, uint16 lvl, uint64 sc, uint64 nonce, uint64 expiry) internal view returns (bytes memory) {
+    function _sign(address p, uint16 lvl, uint64 sc, uint64 nonce, uint64 expiry)
+        internal
+        view
+        returns (bytes memory)
+    {
         bytes32 structHash = keccak256(abi.encode(SCORE_TYPEHASH, p, lvl, sc, nonce, expiry));
-        bytes32 domain = keccak256(abi.encode(
-            keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-            keccak256(bytes("BaseStrikerRegistry")),
-            keccak256(bytes("1")),
-            block.chainid,
-            address(registry)
-        ));
+        bytes32 domain = keccak256(
+            abi.encode(
+                keccak256(
+                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+                ),
+                keccak256(bytes("BaseStrikerRegistry")),
+                keccak256(bytes("1")),
+                block.chainid,
+                address(registry)
+            )
+        );
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domain, structHash));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, digest);
         return abi.encodePacked(r, s, v);
@@ -47,18 +55,22 @@ contract GameRegistryTest is Test {
     function testBestScoreNonDecreasing() public {
         uint64 exp = uint64(block.timestamp + 1 hours);
         bytes memory s1 = _sign(player, 3, 500, 1, exp);
-        vm.prank(player); registry.submitScore(3, 500, 1, exp, s1);
+        vm.prank(player);
+        registry.submitScore(3, 500, 1, exp, s1);
         bytes memory s2 = _sign(player, 3, 200, 2, exp);
-        vm.prank(player); registry.submitScore(3, 200, 2, exp, s2);
+        vm.prank(player);
+        registry.submitScore(3, 200, 2, exp, s2);
         assertEq(registry.bestScore(player, 3), 500);
     }
 
     function testHighestOnlyAdvances() public {
         uint64 exp = uint64(block.timestamp + 1 hours);
         bytes memory s1 = _sign(player, 7, 1, 1, exp);
-        vm.prank(player); registry.submitScore(7, 1, 1, exp, s1);
+        vm.prank(player);
+        registry.submitScore(7, 1, 1, exp, s1);
         bytes memory s2 = _sign(player, 3, 2, 2, exp);
-        vm.prank(player); registry.submitScore(3, 2, 2, exp, s2);
+        vm.prank(player);
+        registry.submitScore(3, 2, 2, exp, s2);
         assertEq(registry.highestLevelCleared(player), 7);
     }
 
@@ -81,9 +93,11 @@ contract GameRegistryTest is Test {
     function testRevertOnNonceReuse() public {
         uint64 exp = uint64(block.timestamp + 1 hours);
         bytes memory sig = _sign(player, 5, 1234, 1, exp);
-        vm.prank(player); registry.submitScore(5, 1234, 1, exp, sig);
+        vm.prank(player);
+        registry.submitScore(5, 1234, 1, exp, sig);
         vm.expectRevert(GameRegistry.NonceUsed.selector);
-        vm.prank(player); registry.submitScore(5, 1234, 1, exp, sig);
+        vm.prank(player);
+        registry.submitScore(5, 1234, 1, exp, sig);
     }
 
     function testOnlyOwnerCanRotateSigner() public {

@@ -12,8 +12,8 @@ interface ILBPFactory {
         string memory name,
         string memory symbol,
         IERC20[] memory tokens,
-        uint256[] memory weights,       // 18-dec, sum to 1e18
-        uint256 swapFeePercentage,      // 1e16 = 1%
+        uint256[] memory weights, // 18-dec, sum to 1e18
+        uint256 swapFeePercentage, // 1e16 = 1%
         address owner,
         bool swapEnabledOnStart
     ) external returns (address);
@@ -21,16 +21,17 @@ interface ILBPFactory {
 
 interface ILBP {
     function getPoolId() external view returns (bytes32);
-    function updateWeightsGradually(
-        uint256 startTime,
-        uint256 endTime,
-        uint256[] memory endWeights
-    ) external;
+    function updateWeightsGradually(uint256 startTime, uint256 endTime, uint256[] memory endWeights) external;
     function setSwapEnabled(bool swapEnabled) external;
 }
 
 interface IBalancerVault {
-    enum JoinKind { INIT, EXACT_TOKENS_IN_FOR_BPT_OUT, TOKEN_IN_FOR_EXACT_BPT_OUT, ALL_TOKENS_IN_FOR_EXACT_BPT_OUT }
+    enum JoinKind {
+        INIT,
+        EXACT_TOKENS_IN_FOR_BPT_OUT,
+        TOKEN_IN_FOR_EXACT_BPT_OUT,
+        ALL_TOKENS_IN_FOR_EXACT_BPT_OUT
+    }
 
     struct JoinPoolRequest {
         IERC20[] assets;
@@ -39,12 +40,9 @@ interface IBalancerVault {
         bool fromInternalBalance;
     }
 
-    function joinPool(
-        bytes32 poolId,
-        address sender,
-        address recipient,
-        JoinPoolRequest memory request
-    ) external payable;
+    function joinPool(bytes32 poolId, address sender, address recipient, JoinPoolRequest memory request)
+        external
+        payable;
 }
 
 /// @notice Deploys a STRK/USDC Liquidity Bootstrapping Pool on Base via Fjord/Balancer V2.
@@ -94,11 +92,15 @@ contract DeployLBP is Script {
         // 90 / 10 in favor of STRK at start → 50 / 50 at end.
         // This produces a downward price-discovery curve as buyers absorb the imbalance.
         if (strkFirst) {
-            startWeights[0] = 0.9e18; startWeights[1] = 0.1e18;
-            endWeights[0]   = 0.5e18; endWeights[1]   = 0.5e18;
+            startWeights[0] = 0.9e18;
+            startWeights[1] = 0.1e18;
+            endWeights[0] = 0.5e18;
+            endWeights[1] = 0.5e18;
         } else {
-            startWeights[0] = 0.1e18; startWeights[1] = 0.9e18;
-            endWeights[0]   = 0.5e18; endWeights[1]   = 0.5e18;
+            startWeights[0] = 0.1e18;
+            startWeights[1] = 0.9e18;
+            endWeights[0] = 0.5e18;
+            endWeights[1] = 0.5e18;
         }
 
         address pool = factory.create(
@@ -108,7 +110,7 @@ contract DeployLBP is Script {
             startWeights,
             FEE_1_PERCENT,
             owner,
-            false               // swap disabled at create; enable at startTimestamp
+            false // swap disabled at create; enable at startTimestamp
         );
         bytes32 poolId = ILBP(pool).getPoolId();
         console2.log("LBP pool deployed:", pool);

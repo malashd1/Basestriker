@@ -7,10 +7,22 @@ import { Ownable2Step } from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-interface IShipNFT { function mint(address to, uint8 tier) external returns (uint256); }
-interface IEquipmentNFT { function mint(address to, uint256 id, uint256 amount) external; }
-interface IStrikerToken { function burnFrom(address from, uint256 amount) external; function transferFrom(address from, address to, uint256 amount) external returns (bool); }
-interface IAerodromeTWAP { function quote(address from, address to, uint256 amountIn) external view returns (uint256); }
+interface IShipNFT {
+    function mint(address to, uint8 tier) external returns (uint256);
+}
+
+interface IEquipmentNFT {
+    function mint(address to, uint256 id, uint256 amount) external;
+}
+
+interface IStrikerToken {
+    function burnFrom(address from, uint256 amount) external;
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
+}
+
+interface IAerodromeTWAP {
+    function quote(address from, address to, uint256 amountIn) external view returns (uint256);
+}
 
 /// @title PaymentRouter — routes ETH / USDC / $STRK purchases to mints.
 /// @notice On ETH/USDC purchase: 30% buys $STRK on Aerodrome and burns, 70% to treasury.
@@ -25,23 +37,27 @@ contract PaymentRouter is Ownable2Step, ReentrancyGuard {
     event PriceUpdated(uint32 indexed id, uint256 ethWei, uint256 usdc6, uint256 strkWei);
     event ItemPurchased(address indexed buyer, uint32 indexed id, uint8 currency, uint256 amount);
 
-    enum Currency { ETH, USDC, STRK }
+    enum Currency {
+        ETH,
+        USDC,
+        STRK
+    }
 
     struct Item {
         bool active;
         bool isShip;
         uint8 tierOrCategory;
-        uint256 priceEth;       // wei
-        uint256 priceUsdc;      // 6-decimal USDC
-        uint256 priceStrk;      // 18-decimal STRK (fallback if TWAP unset)
+        uint256 priceEth; // wei
+        uint256 priceUsdc; // 6-decimal USDC
+        uint256 priceStrk; // 18-decimal STRK (fallback if TWAP unset)
     }
 
-    IShipNFT      public immutable ship;
+    IShipNFT public immutable ship;
     IEquipmentNFT public immutable equipment;
-    IERC20        public immutable strk;
-    IERC20        public immutable usdc;
-    address       public treasury;
-    address       public twap; // Aerodrome quoter, optional
+    IERC20 public immutable strk;
+    IERC20 public immutable usdc;
+    address public treasury;
+    address public twap; // Aerodrome quoter, optional
 
     mapping(uint32 => Item) public items;
     mapping(address => bool) public relayers; // fiat-onramp relayers (e.g. Stripe webhook signer)
@@ -51,8 +67,10 @@ contract PaymentRouter is Ownable2Step, ReentrancyGuard {
 
     constructor(
         address owner_,
-        IShipNFT ship_, IEquipmentNFT equipment_,
-        IERC20 strk_, IERC20 usdc_,
+        IShipNFT ship_,
+        IEquipmentNFT equipment_,
+        IERC20 strk_,
+        IERC20 usdc_,
         address treasury_
     ) Ownable(owner_) {
         ship = ship_;
@@ -64,8 +82,13 @@ contract PaymentRouter is Ownable2Step, ReentrancyGuard {
 
     // ---------- admin ----------
 
-    function setTreasury(address t) external onlyOwner { treasury = t; }
-    function setTwap(address t) external onlyOwner { twap = t; }
+    function setTreasury(address t) external onlyOwner {
+        treasury = t;
+    }
+
+    function setTwap(address t) external onlyOwner {
+        twap = t;
+    }
 
     function setRelayer(address r, bool ok) external onlyOwner {
         relayers[r] = ok;
@@ -73,16 +96,23 @@ contract PaymentRouter is Ownable2Step, ReentrancyGuard {
     }
 
     error NotRelayer();
-    modifier onlyRelayer() { if (!relayers[msg.sender]) revert NotRelayer(); _; }
+    modifier onlyRelayer() {
+        if (!relayers[msg.sender]) revert NotRelayer();
+        _;
+    }
 
     /// @notice Mint a ship purchased via fiat onramp (Stripe). Off-chain payment is already settled.
     /// @param externalRef opaque reference to the off-chain payment intent (audit trail).
-    function relayerMintShip(address buyer, uint8 tier, bytes32 externalRef) external onlyRelayer returns (uint256) {
+    function relayerMintShip(address buyer, uint8 tier, bytes32 externalRef)
+        external
+        onlyRelayer
+        returns (uint256)
+    {
         uint32 id = _shipId(tier);
         Item memory it = items[id];
         if (!it.active || !it.isShip) revert UnknownItem();
         uint256 newId = ship.mint(buyer, tier);
-        emit ItemPurchased(buyer, id, 99, 0);     // currency 99 = fiat
+        emit ItemPurchased(buyer, id, 99, 0); // currency 99 = fiat
         emit RelayerMint(buyer, id, externalRef);
         return newId;
     }
@@ -97,25 +127,43 @@ contract PaymentRouter is Ownable2Step, ReentrancyGuard {
     }
 
     function setItem(
-        uint32 id, bool isShip, uint8 tierOrCategory,
-        uint256 priceEth, uint256 priceUsdc, uint256 priceStrk
+        uint32 id,
+        bool isShip,
+        uint8 tierOrCategory,
+        uint256 priceEth,
+        uint256 priceUsdc,
+        uint256 priceStrk
     ) external onlyOwner {
         items[id] = Item({
-            active: true, isShip: isShip, tierOrCategory: tierOrCategory,
-            priceEth: priceEth, priceUsdc: priceUsdc, priceStrk: priceStrk
+            active: true,
+            isShip: isShip,
+            tierOrCategory: tierOrCategory,
+            priceEth: priceEth,
+            priceUsdc: priceUsdc,
+            priceStrk: priceStrk
         });
         emit PriceUpdated(id, priceEth, priceUsdc, priceStrk);
     }
 
-    function priceETH(uint32 id) external view returns (uint256)  { return items[id].priceEth; }
-    function priceUSDC(uint32 id) external view returns (uint256) { return items[id].priceUsdc; }
+    function priceETH(uint32 id) external view returns (uint256) {
+        return items[id].priceEth;
+    }
+
+    function priceUSDC(uint32 id) external view returns (uint256) {
+        return items[id].priceUsdc;
+    }
+
     function priceSTRK(uint32 id) external view returns (uint256) {
         Item memory it = items[id];
         if (twap != address(0) && it.priceUsdc > 0) {
             // TWAP-adjusted: 85% of USDC equivalent in STRK.
-            try IAerodromeTWAP(twap).quote(address(usdc), address(strk), it.priceUsdc) returns (uint256 strkOut) {
+            try IAerodromeTWAP(twap).quote(address(usdc), address(strk), it.priceUsdc) returns (
+                uint256 strkOut
+            ) {
                 return strkOut * 85 / 100;
-            } catch { return it.priceStrk; }
+            } catch {
+                return it.priceStrk;
+            }
         }
         return it.priceStrk;
     }
@@ -147,7 +195,7 @@ contract PaymentRouter is Ownable2Step, ReentrancyGuard {
     function _consumeETH(uint256 price) internal {
         if (msg.value < price) revert InsufficientPayment();
         // Forward 100% to treasury; off-chain keeper splits 30% into BBB.
-        (bool ok, ) = treasury.call{value: msg.value}("");
+        (bool ok,) = treasury.call{ value: msg.value }("");
         require(ok, "treasury xfer");
     }
 
@@ -207,9 +255,13 @@ contract PaymentRouter is Ownable2Step, ReentrancyGuard {
     function _priceStrk(uint32 id) internal view returns (uint256) {
         Item memory it = items[id];
         if (twap != address(0) && it.priceUsdc > 0) {
-            try IAerodromeTWAP(twap).quote(address(usdc), address(strk), it.priceUsdc) returns (uint256 strkOut) {
+            try IAerodromeTWAP(twap).quote(address(usdc), address(strk), it.priceUsdc) returns (
+                uint256 strkOut
+            ) {
                 return strkOut * 85 / 100;
-            } catch { return it.priceStrk; }
+            } catch {
+                return it.priceStrk;
+            }
         }
         return it.priceStrk;
     }
@@ -220,5 +272,5 @@ contract PaymentRouter is Ownable2Step, ReentrancyGuard {
         return uint32(tier) + 1;
     }
 
-    receive() external payable {}
+    receive() external payable { }
 }

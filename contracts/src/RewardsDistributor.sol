@@ -25,16 +25,17 @@ contract RewardsDistributor is EIP712, Ownable2Step {
     event DailyCapUpdated(uint256 cap);
     event Paused(bool paused);
 
-    IERC20  public immutable strk;
+    IERC20 public immutable strk;
     address public signer;
     uint256 public dailyCap;
-    bool    public paused;
+    bool public paused;
 
     mapping(address => mapping(uint256 => uint256)) public claimedOnEpoch; // player => epoch => amount
-    mapping(uint64  => bool) public nonceUsed;
+    mapping(uint64 => bool) public nonceUsed;
 
-    bytes32 private constant CLAIM_TYPEHASH =
-        keccak256("Claim(address player,uint16 levelId,uint64 score,uint256 amount,uint64 nonce,uint64 expiry)");
+    bytes32 private constant CLAIM_TYPEHASH = keccak256(
+        "Claim(address player,uint16 levelId,uint64 score,uint256 amount,uint64 nonce,uint64 expiry)"
+    );
 
     constructor(address owner_, IERC20 strk_, address signer_, uint256 dailyCap_)
         EIP712("BaseStrikerRewards", "1")
@@ -47,9 +48,20 @@ contract RewardsDistributor is EIP712, Ownable2Step {
         emit DailyCapUpdated(dailyCap_);
     }
 
-    function setSigner(address s) external onlyOwner { signer = s; emit SignerUpdated(s); }
-    function setDailyCap(uint256 c) external onlyOwner { dailyCap = c; emit DailyCapUpdated(c); }
-    function setPaused(bool p) external onlyOwner { paused = p; emit Paused(p); }
+    function setSigner(address s) external onlyOwner {
+        signer = s;
+        emit SignerUpdated(s);
+    }
+
+    function setDailyCap(uint256 c) external onlyOwner {
+        dailyCap = c;
+        emit DailyCapUpdated(c);
+    }
+
+    function setPaused(bool p) external onlyOwner {
+        paused = p;
+        emit Paused(p);
+    }
 
     function claimedToday(address p) external view returns (uint256) {
         return claimedOnEpoch[p][_epoch()];
@@ -67,7 +79,8 @@ contract RewardsDistributor is EIP712, Ownable2Step {
         if (block.timestamp > expiry) revert Expired();
         if (nonceUsed[nonce]) revert NonceUsed();
 
-        bytes32 structHash = keccak256(abi.encode(CLAIM_TYPEHASH, msg.sender, levelId, score, amount, nonce, expiry));
+        bytes32 structHash =
+            keccak256(abi.encode(CLAIM_TYPEHASH, msg.sender, levelId, score, amount, nonce, expiry));
         bytes32 digest = _hashTypedDataV4(structHash);
         address recovered = digest.recover(sig);
         if (recovered != signer) revert BadSig();

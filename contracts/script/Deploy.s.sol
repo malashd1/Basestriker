@@ -22,9 +22,9 @@ contract Deploy is Script {
     function run() external {
         uint256 pk = vm.envUint("DEPLOYER_PK");
         address deployer = vm.addr(pk);
-        address signer   = vm.envAddress("BACKEND_SIGNER");
-        bool isMainnet   = block.chainid == 8453;
-        address usdc     = isMainnet ? USDC_MAINNET : USDC_SEPOLIA;
+        address signer = vm.envAddress("BACKEND_SIGNER");
+        bool isMainnet = block.chainid == 8453;
+        address usdc = isMainnet ? USDC_MAINNET : USDC_SEPOLIA;
 
         vm.startBroadcast(pk);
 
@@ -51,27 +51,27 @@ contract Deploy is Script {
         equipNft.setMinter(address(router), true);
 
         // Seed ship item prices (ids 1..5 = tier 0..4)
-        router.setItem(1, true, 0, 0, 0, 0);                        // Scout free
-        router.setItem(2, true, 1, 0.005 ether, 5e6,   5_000 ether);
-        router.setItem(3, true, 2, 0.015 ether, 15e6,  15_000 ether);
-        router.setItem(4, true, 3, 0.04 ether,  40e6,  40_000 ether);
-        router.setItem(5, true, 4, 0.12 ether,  120e6, 120_000 ether);
+        router.setItem(1, true, 0, 0, 0, 0); // Scout free
+        router.setItem(2, true, 1, 0.005 ether, 5e6, 5_000 ether);
+        router.setItem(3, true, 2, 0.015 ether, 15e6, 15_000 ether);
+        router.setItem(4, true, 3, 0.04 ether, 40e6, 40_000 ether);
+        router.setItem(5, true, 4, 0.12 ether, 120e6, 120_000 ether);
 
         // Seed a handful of equipment ids.
         // ID layout: (cat<<24)|(rarity<<16)|item
         // category 0=weapon, 1=shield, 2=utility, 3=cosmetic
-        _eq(router, 0, 0, 1,  0.0005 ether,  0.5e6,   500 ether);   // common single cannon
-        _eq(router, 0, 1, 2,  0.0015 ether,  1.5e6,   1500 ether);  // common double
-        _eq(router, 0, 2, 3,  0.005 ether,   5e6,     5_000 ether); // uncommon triple
-        _eq(router, 0, 3, 4,  0.015 ether,   15e6,    15_000 ether);// rare spread
-        _eq(router, 0, 4, 5,  0.025 ether,   25e6,    25_000 ether);// epic laser
-        _eq(router, 0, 4, 6,  0.04 ether,    40e6,    40_000 ether);// epic plasma
-        _eq(router, 0, 5, 7,  0.1 ether,     100e6,   100_000 ether);// legendary homing
-        _eq(router, 1, 1, 10, 0.005 ether,   5e6,     5_000 ether); // shield basic
-        _eq(router, 1, 4, 11, 0.025 ether,   25e6,    25_000 ether);// shield quantum
-        _eq(router, 2, 1, 20, 0.003 ether,   3e6,     3_000 ether); // +1 bomb
-        _eq(router, 2, 2, 21, 0.008 ether,   8e6,     8_000 ether); // loot magnet
-        _eq(router, 2, 3, 22, 0.015 ether,   15e6,    15_000 ether);// drone companion
+        _eq(router, 0, 0, 1, 0.0005 ether, 0.5e6, 500 ether); // common single cannon
+        _eq(router, 0, 1, 2, 0.0015 ether, 1.5e6, 1500 ether); // common double
+        _eq(router, 0, 2, 3, 0.005 ether, 5e6, 5_000 ether); // uncommon triple
+        _eq(router, 0, 3, 4, 0.015 ether, 15e6, 15_000 ether); // rare spread
+        _eq(router, 0, 4, 5, 0.025 ether, 25e6, 25_000 ether); // epic laser
+        _eq(router, 0, 4, 6, 0.04 ether, 40e6, 40_000 ether); // epic plasma
+        _eq(router, 0, 5, 7, 0.1 ether, 100e6, 100_000 ether); // legendary homing
+        _eq(router, 1, 1, 10, 0.005 ether, 5e6, 5_000 ether); // shield basic
+        _eq(router, 1, 4, 11, 0.025 ether, 25e6, 25_000 ether); // shield quantum
+        _eq(router, 2, 1, 20, 0.003 ether, 3e6, 3_000 ether); // +1 bomb
+        _eq(router, 2, 2, 21, 0.008 ether, 8e6, 8_000 ether); // loot magnet
+        _eq(router, 2, 3, 22, 0.015 ether, 15e6, 15_000 ether); // drone companion
 
         // Fund the rewards distributor: 40% of supply = 400M $STRK.
         // (Treasury holds full supply at deploy.) Owner manually calls fundRewards later
@@ -91,8 +91,13 @@ contract Deploy is Script {
     }
 
     function _eq(
-        PaymentRouter r, uint8 category, uint8 rarity, uint16 itemId,
-        uint256 priceEth, uint256 priceUsdc, uint256 priceStrk
+        PaymentRouter r,
+        uint8 category,
+        uint8 rarity,
+        uint16 itemId,
+        uint256 priceEth,
+        uint256 priceUsdc,
+        uint256 priceStrk
     ) internal {
         uint32 id = (uint32(category) << 24) | (uint32(rarity) << 16) | uint32(itemId);
         r.setItem(id, false, category, priceEth, priceUsdc, priceStrk);

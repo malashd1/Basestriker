@@ -27,7 +27,7 @@ interface IERC20 {
 
 contract BaseStrikerPaymentRouter {
     /// USDC on Base mainnet. Immutable — set once at construction.
-    IERC20  public immutable usdc;
+    IERC20 public immutable usdc;
 
     /// Owner / governor. Can rotate the treasury and pause new payments.
     address public owner;
@@ -36,7 +36,7 @@ contract BaseStrikerPaymentRouter {
     address public treasury;
 
     /// Kill-switch — when true, `payForItem` reverts. Owner-controlled.
-    bool    public paused;
+    bool public paused;
 
     /// Running total of USDC routed since deploy (informational).
     uint256 public totalRouted;
@@ -45,13 +45,7 @@ contract BaseStrikerPaymentRouter {
     /// (the frontend / backend agree on the mapping). `qty` is the number
     /// of items bought in this call; `amount` is the USDC base units actually
     /// pulled. Buyer is `msg.sender`.
-    event ItemPaid(
-        address indexed buyer,
-        bytes32 indexed sku,
-        uint32  qty,
-        uint256 amount,
-        uint256 timestamp
-    );
+    event ItemPaid(address indexed buyer, bytes32 indexed sku, uint32 qty, uint256 amount, uint256 timestamp);
 
     event TreasuryUpdated(address indexed previous, address indexed next);
     event Paused(bool paused);
@@ -72,9 +66,9 @@ contract BaseStrikerPaymentRouter {
     /// @param _treasury The wallet that receives every shop USDC payment.
     constructor(address _usdc, address _treasury) {
         if (_usdc == address(0) || _treasury == address(0)) revert ZeroAddress();
-        usdc     = IERC20(_usdc);
+        usdc = IERC20(_usdc);
         treasury = _treasury;
-        owner    = msg.sender;
+        owner = msg.sender;
         emit TreasuryUpdated(address(0), _treasury);
         emit OwnerTransferred(address(0), msg.sender);
     }
@@ -87,8 +81,8 @@ contract BaseStrikerPaymentRouter {
     /// pulls it from the buyer and forwards 100% to the treasury — no fees
     /// retained here.
     function payForItem(bytes32 sku, uint32 qty, uint256 amount) external {
-        if (paused)        revert PaymentPaused();
-        if (amount == 0)   revert ZeroAmount();
+        if (paused) revert PaymentPaused();
+        if (amount == 0) revert ZeroAmount();
         bool ok = usdc.transferFrom(msg.sender, treasury, amount);
         if (!ok) revert TransferFailed();
         totalRouted += amount;

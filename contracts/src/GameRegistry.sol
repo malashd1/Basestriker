@@ -28,23 +28,19 @@ contract GameRegistry is EIP712, Ownable2Step {
     bytes32 private constant SCORE_TYPEHASH =
         keccak256("Score(address player,uint16 levelId,uint64 score,uint64 nonce,uint64 expiry)");
 
-    constructor(address owner_, address signer_)
-        EIP712("BaseStrikerRegistry", "1")
-        Ownable(owner_)
-    {
+    constructor(address owner_, address signer_) EIP712("BaseStrikerRegistry", "1") Ownable(owner_) {
         signer = signer_;
         emit SignerUpdated(signer_);
     }
 
-    function setSigner(address s) external onlyOwner { signer = s; emit SignerUpdated(s); }
+    function setSigner(address s) external onlyOwner {
+        signer = s;
+        emit SignerUpdated(s);
+    }
 
-    function submitScore(
-        uint16 levelId,
-        uint64 score,
-        uint64 nonce,
-        uint64 expiry,
-        bytes calldata sig
-    ) external {
+    function submitScore(uint16 levelId, uint64 score, uint64 nonce, uint64 expiry, bytes calldata sig)
+        external
+    {
         if (block.timestamp > expiry) revert Expired();
         if (nonceUsed[nonce]) revert NonceUsed();
         bytes32 structHash = keccak256(abi.encode(SCORE_TYPEHASH, msg.sender, levelId, score, nonce, expiry));

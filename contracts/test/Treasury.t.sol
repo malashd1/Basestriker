@@ -47,7 +47,7 @@ contract TreasuryTest is Test {
     }
 
     function testReceiveETH() public {
-        (bool ok, ) = address(treasury).call{value: 1 ether}("");
+        (bool ok,) = address(treasury).call{ value: 1 ether }("");
         assertTrue(ok);
         assertEq(address(treasury).balance, 1 ether);
     }

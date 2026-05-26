@@ -14,9 +14,15 @@ contract EquipmentNFT is ERC1155, Ownable {
 
     mapping(address => bool) public minters;
 
-    modifier onlyMinter() { if (!minters[msg.sender]) revert NotMinter(); _; }
+    modifier onlyMinter() {
+        if (!minters[msg.sender]) revert NotMinter();
+        _;
+    }
 
-    constructor(address owner_) ERC1155("https://meta.basestriker.xyz/equipment/{id}.json") Ownable(owner_) {}
+    constructor(address owner_)
+        ERC1155("https://meta.basestriker.xyz/equipment/{id}.json")
+        Ownable(owner_)
+    { }
 
     function setMinter(address m, bool ok) external onlyOwner {
         minters[m] = ok;
@@ -28,9 +34,19 @@ contract EquipmentNFT is ERC1155, Ownable {
         emit EquipmentMinted(to, id, amount);
     }
 
-    function setURI(string memory newUri) external onlyOwner { _setURI(newUri); }
+    function setURI(string memory newUri) external onlyOwner {
+        _setURI(newUri);
+    }
 
-    function category(uint256 id) public pure returns (uint8) { return uint8(id >> 24); }
-    function rarity(uint256 id)   public pure returns (uint8) { return uint8(id >> 16); }
-    function itemId(uint256 id)   public pure returns (uint16) { return uint16(id); }
+    function category(uint256 id) public pure returns (uint8) {
+        return uint8(id >> 24);
+    }
+
+    function rarity(uint256 id) public pure returns (uint8) {
+        return uint8(id >> 16);
+    }
+
+    function itemId(uint256 id) public pure returns (uint16) {
+        return uint16(id);
+    }
 }

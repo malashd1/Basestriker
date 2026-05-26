@@ -14,8 +14,9 @@ contract RewardsDistributorTest is Test {
     uint256 signerPk;
     address signer;
 
-    bytes32 constant CLAIM_TYPEHASH =
-        keccak256("Claim(address player,uint16 levelId,uint64 score,uint256 amount,uint64 nonce,uint64 expiry)");
+    bytes32 constant CLAIM_TYPEHASH = keccak256(
+        "Claim(address player,uint16 levelId,uint64 score,uint256 amount,uint64 nonce,uint64 expiry)"
+    );
 
     function setUp() public {
         signerPk = 0xA11CEDEF;
@@ -26,7 +27,11 @@ contract RewardsDistributorTest is Test {
         strk.transfer(address(rewards), 1_000_000 ether);
     }
 
-    function _sign(address p, uint16 lvl, uint64 sc, uint256 amt, uint64 nonce, uint64 expiry) internal view returns (bytes memory) {
+    function _sign(address p, uint16 lvl, uint64 sc, uint256 amt, uint64 nonce, uint64 expiry)
+        internal
+        view
+        returns (bytes memory)
+    {
         bytes32 structHash = keccak256(abi.encode(CLAIM_TYPEHASH, p, lvl, sc, amt, nonce, expiry));
         bytes32 domainSeparator = _domain();
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
@@ -35,13 +40,17 @@ contract RewardsDistributorTest is Test {
     }
 
     function _domain() internal view returns (bytes32) {
-        return keccak256(abi.encode(
-            keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
-            keccak256(bytes("BaseStrikerRewards")),
-            keccak256(bytes("1")),
-            block.chainid,
-            address(rewards)
-        ));
+        return keccak256(
+            abi.encode(
+                keccak256(
+                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+                ),
+                keccak256(bytes("BaseStrikerRewards")),
+                keccak256(bytes("1")),
+                block.chainid,
+                address(rewards)
+            )
+        );
     }
 
     function testClaimHappyPath() public {

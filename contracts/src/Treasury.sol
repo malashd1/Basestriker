@@ -17,7 +17,9 @@ contract Treasury is Ownable2Step {
 
     IERC20 public immutable strk;
 
-    constructor(address owner_, IERC20 strk_) Ownable(owner_) { strk = strk_; }
+    constructor(address owner_, IERC20 strk_) Ownable(owner_) {
+        strk = strk_;
+    }
 
     /// @notice Forward STRK to a rewards distributor (owner-gated).
     function fundRewards(address pool, uint256 amount) external onlyOwner {
@@ -28,7 +30,7 @@ contract Treasury is Ownable2Step {
     /// @notice Owner-only withdraw — used for audited grants, payroll, etc.
     function withdraw(address to, address token, uint256 amount) external onlyOwner {
         if (token == address(0)) {
-            (bool ok, ) = to.call{value: amount}("");
+            (bool ok,) = to.call{ value: amount }("");
             require(ok, "eth xfer");
         } else {
             IERC20(token).safeTransfer(to, amount);
@@ -48,14 +50,14 @@ contract Treasury is Ownable2Step {
     ) external onlyOwner {
         uint256 strkBefore = strk.balanceOf(address(this));
         if (usdcBudget > 0) usdc.forceApprove(router, usdcBudget);
-        (bool ok, ) = router.call{value: ethBudget}(routerCalldata);
+        (bool ok,) = router.call{ value: ethBudget }(routerCalldata);
         require(ok, "router fail");
         uint256 received = strk.balanceOf(address(this)) - strkBefore;
         // burn the STRK we just bought
-        (bool ok2, ) = address(strk).call(abi.encodeWithSignature("burn(uint256)", received));
+        (bool ok2,) = address(strk).call(abi.encodeWithSignature("burn(uint256)", received));
         require(ok2, "burn fail");
         emit Buyback(ethBudget, usdcBudget, received);
     }
 
-    receive() external payable {}
+    receive() external payable { }
 }
