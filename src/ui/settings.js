@@ -453,9 +453,11 @@ function purchaseRow(label, currentId, options, cat, onEquip, onPurchase) {
                     action.disabled = true;
                     action.textContent = 'CONFIRM IN WALLET…';
                     try {
-                        // Real on-chain USDC.transfer. Only mark owned + equip after
-                        // the tx lands — no free ships / weapons without payment.
-                        const outcome = await payUsdc(opt.price, 1);
+                        // Real on-chain payment (PaymentRouter on Base mainnet, fallback
+                        // to direct USDC.transfer elsewhere). Only mark owned + equip
+                        // after the tx lands — no free ships / weapons without payment.
+                        // `cat+":"+opt.id` (e.g. "ship:striker") becomes the SKU on-chain.
+                        const outcome = await payUsdc(opt.price, 1, `${cat}:${opt.id}`);
                         if (outcome.kind === 'no-wallet') {
                             render();
                             return;

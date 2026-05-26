@@ -9,6 +9,18 @@ const ZERO = '0x0000000000000000000000000000000000000000';
  * separate cold/hot wallets.
  */
 const TREASURY_DEFAULT = '0xe569A1f798D14809A076ea1c11cb13d698DFcE64';
+/**
+ * Live BaseStriker PaymentRouter on Base mainnet. Players approve USDC to
+ * this address and call `payForItem(sku, qty, amount)`; the contract pulls
+ * USDC and forwards it to TREASURY_DEFAULT, emitting `ItemPaid(buyer, sku,
+ * qty, amount)` for indexers. Verified on Basescan.
+ *
+ * Source: contracts/talent-deploy/BaseStrikerPaymentRouter.sol
+ * Owner: 0x2eCe7De4… (deployer)
+ *
+ * Override per-network via VITE_PAYMENT_ADDR / _ADDR_TEST.
+ */
+const PAYMENT_ROUTER_BASE = '0xc08bda33E32Da9255f21BB57afF78e6d1EAb6789';
 export const NETWORKS = {
     base: {
         chain: base,
@@ -18,7 +30,7 @@ export const NETWORKS = {
             ShipNFT: import.meta.env?.VITE_SHIP_ADDR || ZERO,
             EquipmentNFT: import.meta.env?.VITE_EQUIP_ADDR || ZERO,
             GameRegistry: import.meta.env?.VITE_REGISTRY_ADDR || ZERO,
-            PaymentRouter: import.meta.env?.VITE_PAYMENT_ADDR || ZERO,
+            PaymentRouter: import.meta.env?.VITE_PAYMENT_ADDR || PAYMENT_ROUTER_BASE,
             RewardsDistributor: import.meta.env?.VITE_REWARDS_ADDR || ZERO,
             Treasury: import.meta.env?.VITE_TREASURY_ADDR || TREASURY_DEFAULT,
             USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Native USDC on Base
