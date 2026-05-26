@@ -409,6 +409,39 @@ function badgeTier(rank: number): { tier: string; label: string } {
   return { tier: 'TOP-10', label: `Top 10 · #${rank}` };
 }
 
+// ── Badge eligibility — signs mint payloads for players in past top-10 ──
+//
+// Frontend calls this when the BADGES panel opens. We walk leaderboard
+// history, find every PAST week where the player was in top-10, sign one
+// payload per (weekId, rank), and return the array. UI shows a CLAIM
+// button per entry; clicking it calls BaseStrikerBadgeV2.mint(...).
+import {
+  eligibleBadges as computeEligibleBadges,
+  BADGE_CONTRACT,
+  BADGE_MINT_FEE_WEI,
+} from './badge.js';
+
+const PUBLIC_BADGE_HOST = process.env.PUBLIC_BADGE_HOST || 'https://basestriker.xyz';
+const PUBLIC_API_HOST   = process.env.PUBLIC_API_HOST   || 'https://api.basestriker.xyz';
+
+app.get('/api/badge/eligible/:addr', async (req, res) => {
+  const addr = String(req.params.addr ?? '').toLowerCase();
+  if (!/^0x[a-f0-9]{40}$/.test(addr)) return res.status(400).json({ error: 'bad_addr' });
+  try {
+    const badges = await computeEligibleBadges(db, account, addr, PUBLIC_API_HOST, PUBLIC_BADGE_HOST);
+    res.set('Cache-Control', 'public, max-age=60');
+    res.json({
+      player: addr,
+      contract: BADGE_CONTRACT,
+      mintFeeWei: BADGE_MINT_FEE_WEI,
+      badges,
+    });
+  } catch (e: any) {
+    log.warn('badge.eligible.failed', { msg: String(e?.message ?? e) });
+    res.status(500).json({ error: 'internal' });
+  }
+});
+
 app.get('/api/badge/meta/:weekId/:rank', (req, res) => {
   const weekId = parseInt(req.params.weekId, 10);
   const rank   = parseInt(req.params.rank, 10);
@@ -553,6 +586,11 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 const server = app.listen(PORT, () => {
   log.info('server.listening', { port: PORT, url: `http://0.0.0.0:${PORT}` });
 });
+
+// Weekly LeaderboardCheckpoint cron — posts the prior week's top-100
+// root hash on-chain so anyone can audit the off-chain ranking.
+import { startCheckpointCron } from './checkpoint-cron.js';
+startCheckpointCron(db, env, log);
 
 // Graceful shutdown — drain in-flight requests, close SQLite cleanly.
 function shutdown(signal: string) {

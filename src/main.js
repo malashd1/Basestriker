@@ -3,6 +3,7 @@ import { Game } from './game/Game';
 import { renderShop } from './ui/shop';
 import { renderLeaderboard } from './ui/leaderboard';
 import { renderMissions } from './ui/missions';
+import { renderBadges } from './ui/badges';
 import { renderSettings, applyStoredSettings } from './ui/settings';
 import { connect, walletAddress, onAddressChange, restoreSession } from './web3/wallet';
 import { postRunToBackend, claimRewards, getHighestLevel, creditPoints } from './web3/api';
@@ -14,6 +15,7 @@ const overlay = document.getElementById('overlay');
 const shopEl = document.getElementById('shop');
 const lbEl = document.getElementById('leaderboard');
 const missionsEl = document.getElementById('missions');
+const badgesEl = document.getElementById('badges');
 const settingsEl = document.getElementById('settings');
 const scoreEl = document.getElementById('score');
 const pointsEl = document.getElementById('points');
@@ -57,6 +59,7 @@ const btnConnect = document.getElementById('btn-connect');
 const btnShop = document.getElementById('btn-shop');
 const btnLb = document.getElementById('btn-leaderboard');
 const btnMissions = document.getElementById('btn-missions');
+const btnBadges = document.getElementById('btn-badges');
 const btnSettings = document.getElementById('btn-settings');
 // ── Persistent progression ─────────────────────────────────────────
 // `highestUnlocked` is the next level the player has unlocked. Defaults to 1.
@@ -257,6 +260,9 @@ btnLb.onclick = () => {
 };
 btnMissions.onclick = () => {
     openPanel(missionsEl, () => renderMissions(missionsEl, backToMenu));
+};
+btnBadges.onclick = () => {
+    openPanel(badgesEl, () => renderBadges(badgesEl, backToMenu));
 };
 btnSettings.onclick = () => {
     openPanel(settingsEl, () => renderSettings(settingsEl, {
