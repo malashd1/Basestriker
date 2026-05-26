@@ -133,8 +133,17 @@ async function assertEnoughUsdc(amount, priceUsd, qty) {
 }
 /**
  * Ensure the router has at least `amount` USDC allowance from the buyer.
- * If not, prompts one approve() transaction (granted the max value so
- * future purchases don't re-prompt). Returns when allowance is sufficient.
+ * If not, prompts a single approve(router, amount) for EXACTLY this
+ * purchase amount.
+ *
+ * Why approve the exact amount instead of an "infinite" allowance:
+ *   - Rabby / MetaMask / Trust Wallet show a red WARNING banner when the
+ *     approval exceeds the wallet balance ("Approve 340 trillion USDC,
+ *     Exceeds your current balance"). For non-crypto-native players this
+ *     reads like phishing and they bail.
+ *   - Exact-amount approve shows "Approve 0.50 USDC" — clear, expected,
+ *     trivially safe (the router can never pull more than what was
+ *     approved). 2 popups per purchase is the standard ERC-20 dApp UX.
  */
 async function ensureAllowance(router, amount) {
     const me = walletAddress();
@@ -151,21 +160,16 @@ async function ensureAllowance(router, amount) {
     }));
     if (current >= amount)
         return;
-    // Grant a high allowance so subsequent purchases don't re-prompt. Using
-    // `2**128 - 1` rather than uint256 max because some wallets warn loudly
-    // on "infinite approval" — 2^128 is still ~3.4 × 10^32 USDC, effectively
-    // unlimited for our use case, and reads as a finite number in MM.
-    const HIGH_ALLOWANCE = (1n << 128n) - 1n;
     const approveHash = await wc.writeContract({
         address: cfg.contracts.USDC,
         abi: USDC_ABI,
         functionName: 'approve',
-        args: [router, HIGH_ALLOWANCE],
+        args: [router, amount],
         account: me,
         chain: cfg.chain,
     });
-    // Wait for the approval to be mined so the next payForItem call doesn't
-    // race the allowance update.
+    // Wait for the approval to be mined so the subsequent payForItem call
+    // doesn't race the allowance update.
     await pc.waitForTransactionReceipt({ hash: approveHash });
 }
 /**
