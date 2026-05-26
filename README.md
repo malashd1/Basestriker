@@ -94,13 +94,21 @@ cd backend && npm run build # → backend/dist/
 
 ## 🌐 Live infrastructure
 
-| | URL |
+| | URL / Address |
 |---|---|
 | Landing | https://basestriker.xyz |
 | Game (PWA / TWA) | https://app.basestriker.xyz |
 | API | https://api.basestriker.xyz |
-| Treasury (USDC recipient) | `0xe569A1f798D14809A076ea1c11cb13d698DFcE64` |
-| Backend signer (read-only proof) | `0x4aD73779955087673e089B29812e6c1451B8E17b` |
+
+### On-chain contracts (Base mainnet)
+
+| Contract | Address |
+|---|---|
+| [`BaseStrikerPaymentRouter`](contracts/talent-deploy/BaseStrikerPaymentRouter.sol) | [`0xc08bda33E32Da9255f21BB57afF78e6d1EAb6789`](https://basescan.org/address/0xc08bda33E32Da9255f21BB57afF78e6d1EAb6789) |
+| [`BaseStrikerLeaderboardCheckpoint`](contracts/talent-deploy/BaseStrikerLeaderboardCheckpoint.sol) | [`0xAdBD63254aaF3836cE8295E3E39B3B3f25aF1219`](https://basescan.org/address/0xAdBD63254aaF3836cE8295E3E39B3B3f25aF1219) |
+| [`BaseStrikerBadge`](contracts/talent-deploy/BaseStrikerBadge.sol) (Top-10 SBT) | [`0xd1C53618996A75f2887eb1c1D7b1Df17533E1A1D`](https://basescan.org/address/0xd1C53618996A75f2887eb1c1D7b1Df17533E1A1D) |
+| Treasury (USDC recipient EOA) | [`0xe569A1f798D14809A076ea1c11cb13d698DFcE64`](https://basescan.org/address/0xe569A1f798D14809A076ea1c11cb13d698DFcE64) |
+| Backend signer EOA (claims) | [`0x4aD73779955087673e089B29812e6c1451B8E17b`](https://basescan.org/address/0x4aD73779955087673e089B29812e6c1451B8E17b) |
 
 USDC on Base: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` (6 decimals).
 
