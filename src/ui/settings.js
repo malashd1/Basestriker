@@ -128,6 +128,8 @@ export function renderSettings(root, ctx, onClose) {
         chain: 'Base',
         supportEmail: 'hello@basestriker.xyz',
         website: 'https://basestriker.xyz',
+        publisher: 'Chisoft',
+        publisherUrl: 'https://chisoft.co',
         effectiveDate: '2026-05-20',
     }));
     // Hotkeys reference — keyboard only; on touch / narrow-viewport devices the

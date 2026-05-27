@@ -141,6 +141,12 @@ function ul(items) {
 function footer(brand) {
     const bits = [];
     bits.push(`Effective ${brand.effectiveDate}.`);
+    if (brand.publisher && brand.publisherUrl) {
+        bits.push(`Published by <a style="color:#00d4ff" href="${brand.publisherUrl}" target="_blank" rel="noopener">${brand.publisher}</a>`);
+    }
+    else if (brand.publisher) {
+        bits.push(`Published by ${brand.publisher}`);
+    }
     if (brand.supportEmail)
         bits.push(`Contact: <a style="color:#00d4ff" href="mailto:${brand.supportEmail}">${brand.supportEmail}</a>`);
     if (brand.website)
@@ -234,8 +240,17 @@ function aboutDoc(b) {
     const stack = (b.chain.toLowerCase() === 'solana')
         ? 'Vite, TypeScript, Canvas 2D, Capacitor, Anchor, Solana web3.js, Mobile Wallet Adapter'
         : 'Vite, TypeScript, Canvas 2D, viem, wagmi, Foundry';
+    const publisherBlock = b.publisher
+        ? [
+            h2('Publisher'),
+            p(b.publisherUrl
+                ? `Published by <strong>${b.publisher}</strong> — <a style="color:#00d4ff" href="${b.publisherUrl}" target="_blank" rel="noopener">${b.publisherUrl.replace(/^https?:\/\//, '')}</a>. Independent game studio based in Prague, Czech Republic.`
+                : `Published by <strong>${b.publisher}</strong>.`),
+        ].join('')
+        : '';
     return [
         p(`${b.brand} — a Galaxian-inspired arcade shooter with a fully on-chain economy.`),
+        publisherBlock,
         h2('Tech'),
         p(stack),
         h2('Open content'),

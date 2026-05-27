@@ -8,6 +8,17 @@ const H = 640;
 /// ends on desktop (mobile gets the same line via the touch overlay).
 const CONTROL_BAND_H = 140;
 const PLAYABLE_BOTTOM = H - CONTROL_BAND_H;
+// On touch devices the dedicated CSS control-band div (touchControls.ts)
+// renders its own top accent line that anchors to the joystick / FIRE /
+// BOMB area. Drawing the canvas cyan line on top of that produces TWO
+// parallel horizontal lines because the canvas is `object-fit: contain`
+// letterboxed and the DOM band is anchored to the viewport bottom — the
+// two never line up on non-3:4 phone screens. Suppress the canvas line
+// on touch layouts.
+const IS_TOUCH_LAYOUT = typeof window !== 'undefined' &&
+    (matchMedia('(hover: none) and (pointer: coarse)').matches
+        || matchMedia('(max-width: 520px)').matches
+        || 'ontouchstart' in window);
 // ── Boss sprite atlas ──────────────────────────────────────────────
 // public/sprites/bosses.png is a 320×128 PNG containing 10 boss sprites
 // arranged 5 across × 2 down. Each cell is 64×64.
@@ -142,13 +153,17 @@ export class Renderer {
         // `y ≤ PLAYABLE_BOTTOM − 16` and despawns dives that cross it. On
         // desktop nothing else hints at this boundary so the bottom 140 px
         // just looks like empty playfield. Drawn here as part of the canvas
-        // so it shows up identically on web + APK.
-        ctx.save();
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = '#00d4ff';
-        ctx.fillStyle = 'rgba(0, 212, 255, 0.6)';
-        ctx.fillRect(0, PLAYABLE_BOTTOM - 1, W, 2);
-        ctx.restore();
+        // so it shows up identically on web. Skipped on touch layouts where
+        // the DOM control-band already paints its own top accent (canvas
+        // letterboxing means the two lines wouldn't visually align).
+        if (!IS_TOUCH_LAYOUT) {
+            ctx.save();
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = '#00d4ff';
+            ctx.fillStyle = 'rgba(0, 212, 255, 0.6)';
+            ctx.fillRect(0, PLAYABLE_BOTTOM - 1, W, 2);
+            ctx.restore();
+        }
     }
     drawPlayer(p) {
         const ctx = this.ctx;

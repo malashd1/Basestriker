@@ -159,6 +159,8 @@ export function renderSettings(root: HTMLElement, ctx: SettingsCtx, onClose: () 
     chain:        'Base',
     supportEmail: 'hello@basestriker.xyz',
     website:      'https://basestriker.xyz',
+    publisher:    'Chisoft',
+    publisherUrl: 'https://chisoft.co',
     effectiveDate: '2026-05-20',
   }));
 
