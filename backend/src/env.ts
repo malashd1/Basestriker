@@ -5,6 +5,12 @@
 
 import { isAddress, isHex } from 'viem';
 
+// Hardhat / Anvil deterministic test key, account index 1 (mnemonic:
+// "test test test test test test test test test test test junk"). This is
+// public knowledge used by every EVM dev toolchain — it's NOT a secret;
+// any address derived from it on mainnet is drained continuously by bots.
+// Only used as a local-dev fallback below; production refuses to boot if
+// SIGNER_KEY is unset OR matches this constant (see signerKey check).
 const DEV_SIGNER_KEY = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
 const DEV_RELAYER_KEY = DEV_SIGNER_KEY;
 
