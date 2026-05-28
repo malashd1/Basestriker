@@ -14,7 +14,11 @@ import { NETWORKS } from '../web3/config';
 import { audio } from '../game/audio';
 
 interface EligibleBadge {
+  /// Internal weekId (passed verbatim to mint(); matches signature payload).
   weekId: number;
+  /// Human-facing "Week N" label from backend `displayWeekId()`. Falls back
+  /// to weekId if a stale backend hasn't shipped the new field yet.
+  weekIdDisplay?: number;
   rank: number;
   tier: 'GOLD' | 'SILVER' | 'BRONZE' | 'TOP-10';
   signature: `0x${string}`;
@@ -158,10 +162,15 @@ function renderCard(b: EligibleBadge): HTMLElement {
     'box-shadow:0 0 12px ' + TIER_COLOR[b.tier] + '40',
   ].join(';');
 
+  // Prefer the backend's displayWeekId (compact "Week 1, 2, 3…" counting from
+  // launch); fall back to the raw weekId if the backend response predates
+  // that field.
+  const weekLabel = b.weekIdDisplay ?? b.weekId;
+
   const img = document.createElement('img');
   img.src = b.imageUrl;
   img.style.cssText = 'width:100%;max-width:160px;image-rendering:pixelated';
-  img.alt = `Week ${b.weekId} · Rank ${b.rank}`;
+  img.alt = `Week ${weekLabel} · Rank ${b.rank}`;
   card.appendChild(img);
 
   const tier = document.createElement('div');
@@ -171,7 +180,7 @@ function renderCard(b: EligibleBadge): HTMLElement {
 
   const week = document.createElement('div');
   week.style.cssText = 'font-size:8px;color:#9a9ac0;text-align:center';
-  week.textContent = `Week ${b.weekId}`;
+  week.textContent = `Week ${weekLabel}`;
   card.appendChild(week);
 
   const btn = document.createElement('button');

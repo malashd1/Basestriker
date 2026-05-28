@@ -419,6 +419,7 @@ import {
   eligibleBadges as computeEligibleBadges,
   BADGE_CONTRACT,
   BADGE_MINT_FEE_WEI,
+  displayWeekId,
 } from './badge.js';
 
 const PUBLIC_BADGE_HOST = process.env.PUBLIC_BADGE_HOST || 'https://basestriker.xyz';
@@ -449,29 +450,33 @@ app.get('/api/badge/meta/:weekId/:rank', (req, res) => {
   if (!Number.isFinite(rank)   || rank < 1   || rank > 10)    return res.status(400).json({ error: 'bad_rank' });
 
   const { tier, label } = badgeTier(rank);
-  // Image is hosted statically at basestriker.xyz/badges/week-N-rank-M.png.
-  // The PNG generator emits all 10 ranks per week; backend just points to
-  // the static file. Different week IDs reuse the same template until the
-  // operator regenerates week-specific variants.
-  const imageUrl = `https://basestriker.xyz/badges/week-${weekId}-rank-${rank}.png`;
-  // Fallback to week 1 art if the week-specific PNG hasn't been generated
-  // yet — keeps the tokenURI valid for any future week.
-  const fallback = `https://basestriker.xyz/badges/week-1-rank-${rank}.png`;
+  // `weekId` in the URL path is the INTERNAL Unix-epoch-based week (the
+  // same value stored on-chain by BaseStrikerBadgeV2 + included in the
+  // mint signature). The user-facing label and the static image path
+  // both use `displayWeek`, so a single set of `week-1-rank-N.png`
+  // assets covers the launch week regardless of which Unix-epoch week
+  // we land on at deploy time.
+  const displayWeek = displayWeekId(weekId);
+  const imageUrl    = `https://basestriker.xyz/badges/week-${displayWeek}-rank-${rank}.png`;
+  // Fallback to week 1 art if the display-week-specific PNG hasn't been
+  // generated yet — keeps the tokenURI valid for any future week.
+  const fallback    = `https://basestriker.xyz/badges/week-1-rank-${rank}.png`;
 
   res.set('Cache-Control', 'public, max-age=86400');
   res.json({
-    name: `BaseStriker · Week ${weekId} · #${rank} ${tier}`,
+    name: `BaseStriker · Week ${displayWeek} · #${rank} ${tier}`,
     description:
       `Soulbound badge for placing ${label} on the BaseStriker weekly ` +
-      `leaderboard, Week ${weekId}. Non-transferable. Earned, not bought.`,
+      `leaderboard, Week ${displayWeek}. Non-transferable. Earned, not bought.`,
     image: imageUrl,
     image_fallback: fallback,
     external_url: 'https://basestriker.xyz',
     attributes: [
-      { trait_type: 'Week',      value: weekId },
-      { trait_type: 'Rank',      value: rank   },
-      { trait_type: 'Tier',      value: tier   },
-      { trait_type: 'Soulbound', value: 'Yes'  },
+      { trait_type: 'Week',          value: displayWeek },
+      { trait_type: 'Week (internal)', value: weekId    },
+      { trait_type: 'Rank',          value: rank        },
+      { trait_type: 'Tier',          value: tier        },
+      { trait_type: 'Soulbound',     value: 'Yes'       },
     ],
   });
 });

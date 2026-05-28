@@ -33,8 +33,29 @@ export function tierFor(rank: number): BadgeTier {
 
 /// Week index since Unix epoch (matches the rest of leaderboard math in
 /// server.ts: `Math.floor(Date.now() / (7 * 86_400_000))`).
+///
+/// This value is what we use INTERNALLY everywhere — as the DB primary key
+/// in `leaderboard_weekly` / `checkpoint_log`, in the on-chain signature
+/// payload `keccak256(player, weekId, rank, …)`, and in the `mint(weekId,
+/// rank, sig)` contract call. It stays as raw weeks-since-Unix-epoch so
+/// the existing on-chain checkpoint at LeaderboardCheckpoint(2941) keeps
+/// verifying and the DB does not need to be migrated.
 export function currentWeekId(): number {
   return Math.floor(Date.now() / (7 * 86_400_000));
+}
+
+/// Offset between the internal Unix-epoch weekId and the human-facing
+/// "Week N" the UI shows. Set to 2941 so that the first real game week
+/// (Unix epoch week 2942, starting Thu 2026-05-28 00:00 UTC — the first
+/// week any player landed on the live BaseStriker leaderboard) renders
+/// as "Week 1". Override via env in case we ever back-date the launch.
+export const WEEK_EPOCH_OFFSET = Number(process.env.WEEK_EPOCH_OFFSET ?? '2941');
+
+/// Convert an internal weekId to the user-facing "Week N" label. Used in
+/// badge image URLs, NFT metadata, and the frontend UI. Internal IDs
+/// before `WEEK_EPOCH_OFFSET + 1` collapse to 0 (pre-launch test data).
+export function displayWeekId(internalWeekId: number): number {
+  return Math.max(0, internalWeekId - WEEK_EPOCH_OFFSET);
 }
 
 export interface LeaderboardRow {
@@ -73,7 +94,10 @@ export async function signBadgeMint(
 }
 
 export interface EligibleBadge {
+  /// Internal Unix-epoch-based weekId — pass this verbatim to mint().
   weekId: number;
+  /// Human-facing "Week N" label, derived via displayWeekId(). Show in UI.
+  weekIdDisplay: number;
   rank: number;
   tier: BadgeTier;
   signature: `0x${string}`;
@@ -108,15 +132,19 @@ export async function eligibleBadges(
     if (idx < 0) continue;
     const rank = idx + 1;
     const sig = await signBadgeMint(account, player as Address, week, rank);
+    const displayWeek = displayWeekId(week);
     result.push({
       weekId: week,
+      weekIdDisplay: displayWeek,
       rank,
       tier: tierFor(rank),
       signature: sig,
       contract: BADGE_CONTRACT,
       chainId: 8453,
       mintFeeWei: BADGE_MINT_FEE_WEI,
-      imageUrl: `${publicBase}/badges/week-${week}-rank-${rank}.png`,
+      // Badge artwork is named by DISPLAY week so a static `week-1-rank-N.png`
+      // matches whatever Unix-epoch week we're currently on.
+      imageUrl: `${publicBase}/badges/week-${displayWeek}-rank-${rank}.png`,
       metaUrl: `${apiBase}/api/badge/meta/${week}/${rank}`,
     });
   }
