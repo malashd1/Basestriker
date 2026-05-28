@@ -162,8 +162,13 @@ Companion repos:
 - [Privacy Policy](https://basestriker.xyz/legal/privacy.html)
 - [Disclaimer](https://basestriker.xyz/legal/disclaimer.html)
 
+## 🏢 Studio
+
+BaseStriker is published by [Chisoft](https://chisoft.co/) — an independent
+game studio based in Prague, Czech Republic. See the full game lineup
+(CosmicSeeker, BaseStriker, Classic Games, SoulView Checkers) at
+[chisoft.co](https://chisoft.co/).
+
 ## 📄 License
 
 MIT — see [LICENSE](LICENSE).
-
-Contact: dima@chisoft.co
