@@ -1,9 +1,9 @@
-// Network and contract configuration for Base mainnet + Base Sepolia.
+// Network and contract configuration for Base mainnet + Base Sepolia + Celo.
 // Contract addresses are filled in after deployment (see contracts/script/Deploy.s.sol).
 
-import { base, baseSepolia, type Chain } from 'viem/chains';
+import { base, baseSepolia, celo, type Chain } from 'viem/chains';
 
-export type NetworkName = 'base' | 'baseSepolia';
+export type NetworkName = 'base' | 'baseSepolia' | 'celo';
 
 export interface NetworkConfig {
   chain: Chain;
@@ -16,8 +16,13 @@ export interface NetworkConfig {
     PaymentRouter: `0x${string}`;
     RewardsDistributor: `0x${string}`;
     Treasury: `0x${string}`;
+    /** Address of the network's stablecoin. The field is named USDC for
+     *  historical reasons (Base used native USDC); on Celo this holds cUSD. */
     USDC: `0x${string}`;
   };
+  /** Decimals of the stablecoin in `contracts.USDC`. USDC = 6, cUSD = 18.
+   *  Read by payments.ts to scale `priceUsd` to base units. */
+  stableDecimals: number;
   paymasterUrl?: string;
   backendUrl: string;
 }
@@ -59,6 +64,7 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
       Treasury:           (import.meta.env?.VITE_TREASURY_ADDR as `0x${string}`)     || TREASURY_DEFAULT,
       USDC:               '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Native USDC on Base
     },
+    stableDecimals: 6,
     paymasterUrl: import.meta.env?.VITE_PAYMASTER_URL,
     backendUrl: import.meta.env?.VITE_BACKEND_URL || 'https://api.basestriker.xyz',
   } as NetworkConfig,
@@ -75,12 +81,47 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
       Treasury:           (import.meta.env?.VITE_TREASURY_ADDR_TEST as `0x${string}`)    || TREASURY_DEFAULT,
       USDC:               '0x036CbD53842c5426634e7929541eC2318f3dCF7e', // Base Sepolia USDC
     },
+    stableDecimals: 6,
     paymasterUrl: import.meta.env?.VITE_PAYMASTER_URL_TEST,
     // Dev: prefer same host as the page (so `http://192.168.x.x:5173` resolves the
     // backend at `http://192.168.x.x:8787`). Falls back to localhost if `location`
     // is unavailable (SSR / unit test).
     backendUrl: import.meta.env?.VITE_BACKEND_URL_TEST
       || (typeof location !== 'undefined' ? `${location.protocol}//${location.hostname}:8787` : 'http://localhost:8787'),
+  } as NetworkConfig,
+  /**
+   * Celo mainnet — entry point for MiniPay (Opera's wallet, primary distribution
+   * channel for Celo apps). Uses cUSD (18 decimals) as the in-game stablecoin
+   * instead of Base's native USDC (6 decimals).
+   *
+   * PaymentRouter on Celo: `CeloStrikerPaymentRouter` — same ABI as the Base
+   * router, just renamed and accepts cUSD. Deployed manually via Remix; address
+   * baked here so the Vite build doesn't need an env var to find it (still
+   * overridable via VITE_PAYMENT_ADDR_CELO if you redeploy).
+   *
+   * Treasury is intentionally the SAME wallet as Base — unified bookkeeping.
+   */
+  celo: {
+    chain: celo,
+    rpcUrl: import.meta.env?.VITE_CELO_RPC || 'https://forno.celo.org',
+    contracts: {
+      StrikerToken:       ZERO, // not deployed on Celo (no STRK token here)
+      ShipNFT:            ZERO,
+      EquipmentNFT:       ZERO,
+      GameRegistry:       ZERO,
+      PaymentRouter:      (import.meta.env?.VITE_PAYMENT_ADDR_CELO as `0x${string}`)
+                          || '0x30497388154f47B5Cee9814ADFF4ed2f264ef26b',
+      RewardsDistributor: ZERO,
+      Treasury:           (import.meta.env?.VITE_TREASURY_ADDR_CELO as `0x${string}`)
+                          || TREASURY_DEFAULT,
+      // cUSD on Celo mainnet — Celo's native USD stablecoin, the asset MiniPay
+      // users primarily hold. 18 decimals (not 6 like USDC!).
+      USDC:               '0x765DE816845861e75A25fCA122bb6898B8B1282a',
+    },
+    stableDecimals: 18,
+    backendUrl: import.meta.env?.VITE_BACKEND_URL_CELO
+      || import.meta.env?.VITE_BACKEND_URL
+      || 'https://api.basestriker.xyz',
   } as NetworkConfig,
 };
 

@@ -127,9 +127,12 @@ async function assertEnoughUsdc(amount: bigint, priceUsd: number, qty: number): 
       args: [me],
     })) as bigint;
     if (balance < amount) {
-      const have = Number(balance) / 1_000_000;
+      // Scale by the network's stablecoin decimals (6 for USDC, 18 for cUSD).
+      const divisor = 10 ** cfg.stableDecimals;
+      const have = Number(balance) / divisor;
       const need = priceUsd * qty;
-      throw new Error(`Need ${need} USDC, you have ${have.toFixed(2)}.`);
+      const symbol = cfg.stableDecimals === 18 ? 'cUSD' : 'USDC';
+      throw new Error(`Need ${need} ${symbol}, you have ${have.toFixed(2)}.`);
     }
   } catch (e: any) {
     // Re-throw insufficient-balance; swallow other RPC errors so the
@@ -199,8 +202,10 @@ export async function payUsdc(priceUsd: number, qty: number, itemId: string = 'u
   if (!cfg.contracts.USDC || cfg.contracts.USDC === ZERO) return { kind: 'no-config' };
   if (!cfg.contracts.Treasury || cfg.contracts.Treasury === ZERO) return { kind: 'no-config' };
 
-  // USDC on Base + Base Sepolia is 6-decimal; parseUnits avoids float drift.
-  const amount = parseUnits((priceUsd * qty).toFixed(6), 6);
+  // USDC on Base = 6 decimals, cUSD on Celo = 18. parseUnits avoids float drift.
+  // Toggle fractional precision so 18-decimal cUSD doesn't truncate small prices.
+  const fracDigits = Math.min(cfg.stableDecimals, 6);
+  const amount = parseUnits((priceUsd * qty).toFixed(fracDigits), cfg.stableDecimals);
 
   await ensureChain();
   await assertEnoughUsdc(amount, priceUsd, qty);
@@ -250,5 +255,6 @@ export async function readUsdcBalance(): Promise<number | null> {
     functionName: 'balanceOf',
     args: [me],
   });
-  return Number(raw) / 1_000_000;
+  // Scale by configured decimals — 6 (USDC/Base) or 18 (cUSD/Celo).
+  return Number(raw) / 10 ** cfg.stableDecimals;
 }

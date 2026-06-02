@@ -125,7 +125,28 @@ async function pickWalletKind() {
         document.addEventListener('keydown', onKey);
     });
 }
+/**
+ * True when the page is opened inside the MiniPay in-app browser (Opera's
+ * stablecoin wallet on Celo). MiniPay injects `window.ethereum` with the
+ * extra `isMiniPay` flag — the standard pattern from
+ * https://docs.celo.org/build/build-on-minipay/integration-guide.
+ *
+ * When detected we skip the wallet picker entirely (MiniPay IS the wallet,
+ * the user is already authenticated) and bypass straight to the injected
+ * provider. The UI should also hide its "Connect wallet" CTA — there's no
+ * other wallet to switch to inside MiniPay.
+ */
+export function isMiniPay() {
+    if (typeof window === 'undefined')
+        return false;
+    const eth = window.ethereum;
+    return !!(eth && eth.isMiniPay);
+}
 export async function connect(kindOverride) {
+    // MiniPay short-circuit: skip the picker, go straight to injected provider.
+    if (!kindOverride && isMiniPay()) {
+        return connect('injected');
+    }
     const kind = kindOverride ?? await pickWalletKind();
     if (!kind)
         return null;
@@ -248,7 +269,51 @@ function readSession() {
  * already authorised). If the silent reauth fails the cached address
  * stays in the UI; the next signing call will surface the real reason.
  */
+/**
+ * MiniPay-only fast-path. On first visit (no cached session) inside the
+ * MiniPay in-app browser we can silently fetch the connected account
+ * because MiniPay treats the dapp as already authorised — no popup.
+ *
+ * Returns the address if MiniPay was detected and provided one; null
+ * otherwise so the caller can fall through to the normal restoreSession
+ * / picker flow.
+ */
+export async function autoConnectIfMiniPay() {
+    if (!isMiniPay())
+        return null;
+    try {
+        _provider = window.ethereum;
+        // MiniPay returns the account from eth_accounts without prompting.
+        const accounts = await _provider.request({ method: 'eth_accounts' });
+        const addr = (accounts?.[0] ?? null);
+        if (!addr)
+            return null;
+        _address = addr;
+        _walletClient = createWalletClient({
+            account: addr,
+            chain: NETWORKS[_network].chain,
+            transport: custom(_provider),
+        });
+        setNetwork(_network);
+        _provider.on?.('accountsChanged', (accs) => {
+            _address = (accs?.[0] ?? null);
+            persistSession(_address ? { address: _address, kind: 'injected' } : null);
+            emit();
+        });
+        persistSession({ address: addr, kind: 'injected' });
+        emit();
+        return addr;
+    }
+    catch (e) {
+        console.warn('[wallet] MiniPay auto-connect failed', e);
+        return null;
+    }
+}
 export async function restoreSession() {
+    // MiniPay takes priority — auto-connect even without a cached session.
+    const minipay = await autoConnectIfMiniPay();
+    if (minipay)
+        return minipay;
     const cached = readSession();
     if (!cached)
         return null;

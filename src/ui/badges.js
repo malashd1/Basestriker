@@ -8,7 +8,7 @@
 //   3. For each entry, render a card with image + tier label + CLAIM button
 //   4. CLAIM → on-chain mint(weekId, rank, sig) value=mintFeeWei via wallet
 //   5. After tx mined → button flips to "✓ MINTED" + Basescan link
-import { walletAddress, walletClient, currentNetwork } from '../web3/wallet';
+import { walletAddress, walletClient, currentNetwork, connect, onAddressChange } from '../web3/wallet';
 import { NETWORKS } from '../web3/config';
 import { audio } from '../game/audio';
 const BADGE_ABI = [
@@ -61,22 +61,69 @@ export function renderBadges(root, onClose) {
     status.style.cssText = 'font-size:10px;color:#9a9ac0;text-align:center;margin-top:8px';
     status.textContent = 'Loading…';
     root.appendChild(status);
+    // Real CONNECT button — shown when no wallet is attached. Mirrors the shop
+    // panel's pattern (Promise.race against a timeout so a stalled connector
+    // doesn't lock the UI). Hidden by default; `loadAndRender` toggles it on.
+    const connectBtn = document.createElement('button');
+    connectBtn.textContent = 'CONNECT WALLET';
+    connectBtn.className = 'primary';
+    connectBtn.style.cssText = 'margin-top:4px;display:none';
+    connectBtn.onclick = async () => {
+        connectBtn.disabled = true;
+        connectBtn.textContent = 'CONNECTING…';
+        try {
+            const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 60_000));
+            await Promise.race([connect(), timeout]);
+        }
+        catch (e) {
+            console.warn('[badge] connect failed', e);
+        }
+        finally {
+            connectBtn.disabled = false;
+            connectBtn.textContent = 'CONNECT WALLET';
+        }
+        // `onAddressChange` will fire and re-render when the wallet actually
+        // attaches; nothing else to do here.
+    };
+    root.appendChild(connectBtn);
+    // Re-render whenever the wallet address changes (connect / disconnect /
+    // switch), so the panel reflects the current wallet without forcing the
+    // user to close + reopen it.
+    const offWallet = onAddressChange(() => {
+        void loadAndRender(grid, status, connectBtn);
+    });
     const close = document.createElement('button');
     close.textContent = 'CLOSE';
     close.className = 'danger';
     close.onclick = () => {
+        offWallet(); // stop listening — avoids leaking callbacks on
+        // every BADGES open / close cycle
         root.classList.add('hidden');
         onClose();
     };
     root.appendChild(close);
-    void loadAndRender(grid, status);
+    void loadAndRender(grid, status, connectBtn);
 }
-async function loadAndRender(grid, status) {
+async function loadAndRender(grid, status, connectBtn) {
+    // Reset any prior render — onAddressChange may invoke us multiple times.
+    grid.innerHTML = '';
+    status.style.display = '';
+    status.style.color = '#9a9ac0';
     const me = walletAddress();
     if (!me) {
-        status.textContent = 'Connect a wallet to see your eligible badges.';
+        status.innerHTML = [
+            'Connect a wallet to see your eligible badges.',
+            '<br>',
+            '<span style="font-size:8px;opacity:0.6">',
+            'Same wallet you use for the shop / leaderboard.',
+            '</span>',
+        ].join('');
+        connectBtn.style.display = '';
         return;
     }
+    // Wallet attached → hide CONNECT button.
+    connectBtn.style.display = 'none';
+    status.textContent = 'Loading…';
     const cfg = NETWORKS[currentNetwork()];
     const apiBase = cfg.backendUrl;
     let resp;
@@ -123,10 +170,14 @@ function renderCard(b) {
         'gap:6px',
         'box-shadow:0 0 12px ' + TIER_COLOR[b.tier] + '40',
     ].join(';');
+    // Prefer the backend's displayWeekId (compact "Week 1, 2, 3…" counting from
+    // launch); fall back to the raw weekId if the backend response predates
+    // that field.
+    const weekLabel = b.weekIdDisplay ?? b.weekId;
     const img = document.createElement('img');
     img.src = b.imageUrl;
     img.style.cssText = 'width:100%;max-width:160px;image-rendering:pixelated';
-    img.alt = `Week ${b.weekId} · Rank ${b.rank}`;
+    img.alt = `Week ${weekLabel} · Rank ${b.rank}`;
     card.appendChild(img);
     const tier = document.createElement('div');
     tier.style.cssText = `font-size:10px;color:${TIER_COLOR[b.tier]};text-align:center;letter-spacing:1px`;
@@ -134,7 +185,7 @@ function renderCard(b) {
     card.appendChild(tier);
     const week = document.createElement('div');
     week.style.cssText = 'font-size:8px;color:#9a9ac0;text-align:center';
-    week.textContent = `Week ${b.weekId}`;
+    week.textContent = `Week ${weekLabel}`;
     card.appendChild(week);
     const btn = document.createElement('button');
     btn.textContent = `CLAIM · ${(Number(b.mintFeeWei) / 1e18).toFixed(4)} ETH`;
@@ -144,11 +195,28 @@ function renderCard(b) {
     return card;
 }
 async function claim(b, btn) {
-    const me = walletAddress();
-    const wc = walletClient();
+    let me = walletAddress();
+    let wc = walletClient();
+    // No wallet → actually drive the connect flow instead of just rewriting the
+    // label and bailing. After connect resolves we proceed with the mint so the
+    // user doesn't have to click CLAIM a second time.
     if (!me || !wc) {
-        btn.textContent = 'CONNECT WALLET';
-        return;
+        btn.disabled = true;
+        btn.textContent = 'CONNECTING…';
+        try {
+            const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 60_000));
+            await Promise.race([connect(), timeout]);
+        }
+        catch (e) {
+            console.warn('[badge] connect failed', e);
+        }
+        me = walletAddress();
+        wc = walletClient();
+        if (!me || !wc) {
+            btn.disabled = false;
+            btn.textContent = 'CONNECT WALLET';
+            return;
+        }
     }
     const cfg = NETWORKS[currentNetwork()];
     btn.disabled = true;
