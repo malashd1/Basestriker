@@ -90,6 +90,11 @@ export const NETWORKS = {
             USDC: '0x765DE816845861e75A25fCA122bb6898B8B1282a',
         },
         stableDecimals: 18,
+        stableSymbol: 'cUSD',
+        // 20× cheaper than Base: $1 boost → $0.05 boost in cUSD. Easier upsell
+        // for MiniPay's audience, and aligns the shop with real cUSD balances
+        // typical in the wallet.
+        priceMultiplier: 0.05,
         backendUrl: import.meta.env?.VITE_BACKEND_URL_CELO
             || import.meta.env?.VITE_BACKEND_URL
             || 'https://api.basestriker.xyz',

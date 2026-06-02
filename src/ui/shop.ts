@@ -8,8 +8,27 @@
 // Inventory persists across runs and deaths; equipped state is reset on death
 // (handled in Game.finalize).
 
-import { walletAddress, connect, onAddressChange } from '../web3/wallet';
+import { walletAddress, connect, onAddressChange, currentNetwork } from '../web3/wallet';
 import { payUsdc } from '../web3/payments';
+import { NETWORKS } from '../web3/config';
+
+/** Network-aware display price: multiplied by priceMultiplier (e.g. ×0.05 on Celo). */
+function displayPrice(priceUsd: number): number {
+  return priceUsd * (NETWORKS[currentNetwork()].priceMultiplier ?? 1);
+}
+
+/** Symbol shown in shop UI — defaults to USDC, "cUSD" on Celo. */
+function priceSymbol(): string {
+  return NETWORKS[currentNetwork()].stableSymbol ?? 'USDC';
+}
+
+/** Format `${total} SYM` honouring fractional prices (Celo ×0.05 makes them small). */
+function formatPrice(priceUsd: number): string {
+  const v = displayPrice(priceUsd);
+  // Up to 2 decimals — "0.05", "0.10", "2.50". Drop trailing zeros for cleanliness.
+  const text = v < 1 ? v.toFixed(2).replace(/\.?0+$/, '') : v.toString();
+  return `${text} ${priceSymbol()}`;
+}
 import {
   addToInventory, removeFromInventory, countOf, onInventoryChange,
   hasTriedFree, markTriedFree,
@@ -167,7 +186,7 @@ export function renderShop(
       totalLabel.style.flex = '1';
       totalLabel.style.textAlign = 'right';
       totalLabel.style.color = it.color;
-      totalLabel.textContent = `$${total} USDC`;
+      totalLabel.textContent = formatPrice(total);
 
       qtyRow.appendChild(minus);
       qtyRow.appendChild(qtyLabel);
@@ -207,7 +226,7 @@ export function renderShop(
           }
         };
       } else {
-        buyBtn.textContent = `BUY $${total}`;
+        buyBtn.textContent = `BUY ${formatPrice(total)}`;
         buyBtn.style.color = it.color;
         buyBtn.style.borderColor = it.color;
         buyBtn.onclick = async () => {

@@ -7,8 +7,24 @@
 //
 // Inventory persists across runs and deaths; equipped state is reset on death
 // (handled in Game.finalize).
-import { walletAddress, connect, onAddressChange } from '../web3/wallet';
+import { walletAddress, connect, onAddressChange, currentNetwork } from '../web3/wallet';
 import { payUsdc } from '../web3/payments';
+import { NETWORKS } from '../web3/config';
+/** Network-aware display price: multiplied by priceMultiplier (e.g. ×0.05 on Celo). */
+function displayPrice(priceUsd) {
+    return priceUsd * (NETWORKS[currentNetwork()].priceMultiplier ?? 1);
+}
+/** Symbol shown in shop UI — defaults to USDC, "cUSD" on Celo. */
+function priceSymbol() {
+    return NETWORKS[currentNetwork()].stableSymbol ?? 'USDC';
+}
+/** Format `${total} SYM` honouring fractional prices (Celo ×0.05 makes them small). */
+function formatPrice(priceUsd) {
+    const v = displayPrice(priceUsd);
+    // Up to 2 decimals — "0.05", "0.10", "2.50". Drop trailing zeros for cleanliness.
+    const text = v < 1 ? v.toFixed(2).replace(/\.?0+$/, '') : v.toString();
+    return `${text} ${priceSymbol()}`;
+}
 import { addToInventory, removeFromInventory, countOf, onInventoryChange, hasTriedFree, markTriedFree, } from '../game/inventory';
 const ITEMS = [
     { id: 'extra-life', name: 'Extra Life', desc: '+1 HP at start of next run', color: '#ff4860', usdc: 1 },
@@ -115,7 +131,7 @@ export function renderShop(root, handlers, onClose) {
             totalLabel.style.flex = '1';
             totalLabel.style.textAlign = 'right';
             totalLabel.style.color = it.color;
-            totalLabel.textContent = `$${total} USDC`;
+            totalLabel.textContent = formatPrice(total);
             qtyRow.appendChild(minus);
             qtyRow.appendChild(qtyLabel);
             qtyRow.appendChild(plus);
@@ -154,7 +170,7 @@ export function renderShop(root, handlers, onClose) {
                 };
             }
             else {
-                buyBtn.textContent = `BUY $${total}`;
+                buyBtn.textContent = `BUY ${formatPrice(total)}`;
                 buyBtn.style.color = it.color;
                 buyBtn.style.borderColor = it.color;
                 buyBtn.onclick = async () => {

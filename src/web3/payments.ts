@@ -130,9 +130,9 @@ async function assertEnoughUsdc(amount: bigint, priceUsd: number, qty: number): 
       // Scale by the network's stablecoin decimals (6 for USDC, 18 for cUSD).
       const divisor = 10 ** cfg.stableDecimals;
       const have = Number(balance) / divisor;
-      const need = priceUsd * qty;
-      const symbol = cfg.stableDecimals === 18 ? 'cUSD' : 'USDC';
-      throw new Error(`Need ${need} ${symbol}, you have ${have.toFixed(2)}.`);
+      const need = priceUsd * qty * (cfg.priceMultiplier ?? 1);
+      const symbol = cfg.stableSymbol ?? (cfg.stableDecimals === 18 ? 'cUSD' : 'USDC');
+      throw new Error(`Need ${need.toFixed(4)} ${symbol}, you have ${have.toFixed(2)}.`);
     }
   } catch (e: any) {
     // Re-throw insufficient-balance; swallow other RPC errors so the
@@ -204,8 +204,10 @@ export async function payUsdc(priceUsd: number, qty: number, itemId: string = 'u
 
   // USDC on Base = 6 decimals, cUSD on Celo = 18. parseUnits avoids float drift.
   // Toggle fractional precision so 18-decimal cUSD doesn't truncate small prices.
+  // Apply network multiplier — e.g. Celo cuts shop prices by 20× via 0.05.
   const fracDigits = Math.min(cfg.stableDecimals, 6);
-  const amount = parseUnits((priceUsd * qty).toFixed(fracDigits), cfg.stableDecimals);
+  const scaled = priceUsd * qty * (cfg.priceMultiplier ?? 1);
+  const amount = parseUnits(scaled.toFixed(fracDigits), cfg.stableDecimals);
 
   await ensureChain();
   await assertEnoughUsdc(amount, priceUsd, qty);

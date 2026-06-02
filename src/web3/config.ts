@@ -23,6 +23,14 @@ export interface NetworkConfig {
   /** Decimals of the stablecoin in `contracts.USDC`. USDC = 6, cUSD = 18.
    *  Read by payments.ts to scale `priceUsd` to base units. */
   stableDecimals: number;
+  /** Display symbol for the stablecoin shown in shop UI / errors.
+   *  Defaults to "USDC" when omitted. */
+  stableSymbol?: string;
+  /** Multiplier applied to shop priceUsd values for this network. 1.0 = no
+   *  change (Base). On Celo we set 0.05 so every shop price is 20× cheaper —
+   *  Celo's audience comes mostly from MiniPay's emerging-markets users and
+   *  the Base USD prices are too steep there. */
+  priceMultiplier?: number;
   paymasterUrl?: string;
   backendUrl: string;
 }
@@ -119,6 +127,11 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
       USDC:               '0x765DE816845861e75A25fCA122bb6898B8B1282a',
     },
     stableDecimals: 18,
+    stableSymbol: 'cUSD',
+    // 20× cheaper than Base: $1 boost → $0.05 boost in cUSD. Easier upsell
+    // for MiniPay's audience, and aligns the shop with real cUSD balances
+    // typical in the wallet.
+    priceMultiplier: 0.05,
     backendUrl: import.meta.env?.VITE_BACKEND_URL_CELO
       || import.meta.env?.VITE_BACKEND_URL
       || 'https://api.basestriker.xyz',
