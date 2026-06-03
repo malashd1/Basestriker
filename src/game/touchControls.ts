@@ -27,24 +27,18 @@ export function attachTouchControls(canvas: HTMLCanvasElement, input: InputContr
   } as Partial<CSSStyleDeclaration>);
 
   // ---- Control band (visual separator between play-field and gamepad) ----
-  // Mirrors the in-engine CONTROL_BAND_H reservation — player ship is
-  // bounded above this band and enemies despawn before entering it, so
-  // bullets / dives / formation enemies never overlap the joystick or
-  // FIRE / BOMB buttons.
-  //
-  // Sized at exactly `25dvh` (dynamic viewport height) — must match the
-  // engine's CONTROL_BAND_H / H ratio (160 / 640 = 25 %) so the visual
-  // band-top edge ALIGNS with the engine's PLAYABLE_BOTTOM. A `min-height`
-  // floor would push the line above the engine boundary on short viewports,
-  // letting the ship visually enter the band area.
-  // Bottom-padded with `env(safe-area-inset-bottom)` so the band visual
-  // covers the iOS home-indicator strip.
+  // The band's top accent (borderTop) marks "no-go" for the player ship
+  // and despawn boundary for enemy bullets / dives. Sized so the line sits
+  // exactly at the JOYSTICK TOP — joystick is at `bottom: SAFE + 70` with
+  // height 120, so its top edge is `SAFE + 190` above the gesture bar.
+  // Match the band height to that: `SAFE + 190`. Previous `25dvh` value
+  // diverged from this on phones with non-zero safe-area-inset-bottom,
+  // letting gameplay (bullets / ship) cross the line.
   const band = document.createElement('div');
   Object.assign(band.style, {
     position: 'absolute',
     left: '0', right: '0', bottom: '0',
-    height: '25dvh',
-    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+    height: 'calc(env(safe-area-inset-bottom, 0px) + 190px)',
     background: 'linear-gradient(180deg, rgba(13,5,36,0) 0%, rgba(13,5,36,0.55) 18%, rgba(13,5,36,0.85) 100%)',
     borderTop: '2px solid rgba(0, 212, 255, 0.4)',
     boxShadow: '0 -8px 24px rgba(0, 212, 255, 0.18)',
