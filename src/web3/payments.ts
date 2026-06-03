@@ -194,8 +194,20 @@ async function ensureAllowance(router: `0x${string}`, amount: bigint): Promise<v
  * passing the shop item's `id` lets indexers reconstruct what was bought.
  */
 export async function payUsdc(priceUsd: number, qty: number, itemId: string = 'unknown'): Promise<BuyOutcome> {
-  const me = walletAddress();
-  const wc = walletClient();
+  // restoreSession() can leave us in a partially-bound state: `_address`
+  // restored from localStorage (HUD shows "Connected"), `_walletClient`
+  // still null until silent reauth finishes (or fails). Without recovery
+  // the shop would BUY-fail even though the HUD says we're connected.
+  // Drive `connect()` first to rebind the walletClient — silent for
+  // already-authorised injected wallets, prompts the picker otherwise.
+  let me = walletAddress();
+  let wc = walletClient();
+  if (me && !wc) {
+    const { connect } = await import('./wallet');
+    try { await connect(); } catch { /* user dismissed */ }
+    me = walletAddress();
+    wc = walletClient();
+  }
   if (!me || !wc) return { kind: 'no-wallet' };
 
   const cfg = NETWORKS[currentNetwork()];
