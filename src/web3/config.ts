@@ -138,5 +138,22 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
   } as NetworkConfig,
 };
 
-export const DEFAULT_NETWORK: NetworkName =
-  (import.meta.env?.VITE_DEFAULT_NETWORK as NetworkName) || 'baseSepolia';
+/**
+ * Default network resolution order:
+ *   1. Runtime hostname: if the page is served from `celo.basestriker.xyz`
+ *      (or any `celo.*` subdomain), force `celo` regardless of build-time
+ *      env. Lets a single `dist/` deploy serve both the Base and Celo
+ *      subdomains without rebuilding twice with different VITE vars.
+ *   2. Build-time: `VITE_DEFAULT_NETWORK` from `.env.production` / `.env`.
+ *   3. Fallback: `baseSepolia` for local dev where nothing's set.
+ */
+function detectDefaultNetwork(): NetworkName {
+  if (typeof window !== 'undefined' && window.location?.hostname?.startsWith('celo.')) {
+    return 'celo';
+  }
+  const env = import.meta.env?.VITE_DEFAULT_NETWORK as NetworkName | undefined;
+  if (env === 'base' || env === 'baseSepolia' || env === 'celo') return env;
+  return 'baseSepolia';
+}
+
+export const DEFAULT_NETWORK: NetworkName = detectDefaultNetwork();
