@@ -56,12 +56,14 @@ export function attachTouchControls(canvas: HTMLCanvasElement, input: InputContr
   // `bottom` adds `env(safe-area-inset-bottom)` so the joystick clears the
   // iOS home-indicator (typically 34 px) and the Android navigation gesture
   // zone. Without it the bottom half of the joystick gets clipped on most
-  // modern phones.
+  // modern phones. Baseline raised from 28 → 70 after user report: the
+  // joystick was sitting too low and partially behind the gesture-nav bar
+  // on Android Pixel-class phones with non-zero safe-area-inset-bottom.
   const joy = document.createElement('div');
   Object.assign(joy.style, {
     position: 'absolute',
     left: '24px',
-    bottom: 'calc(env(safe-area-inset-bottom, 0px) + 28px)',
+    bottom: 'calc(env(safe-area-inset-bottom, 0px) + 70px)',
     width: '120px', height: '120px',
     borderRadius: '50%',
     background: 'rgba(0, 212, 255, 0.08)',
@@ -89,8 +91,10 @@ export function attachTouchControls(canvas: HTMLCanvasElement, input: InputContr
   // thumb travel between them is symmetrical. Yellow bomb sprite reads
   // better against the dark gameplay background than the old pink.
   // Same safe-area lift as the joystick keeps both buttons fully on-screen.
-  const fireBtn = mkButton('FIRE', '#4cff7a', { right: '24px',  bottom: 'calc(env(safe-area-inset-bottom, 0px) + 48px)' });
-  const bombBtn = mkButton('BOMB', '#ffd84d', { right: '128px', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 48px)' });
+  // Baseline raised from 48 → 88 (joystick raised by 42, buttons by 40, so
+  // they stay vertically aligned ~half-way up the joystick's right edge).
+  const fireBtn = mkButton('FIRE', '#4cff7a', { right: '24px',  bottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)' });
+  const bombBtn = mkButton('BOMB', '#ffd84d', { right: '128px', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)' });
   layer.appendChild(fireBtn);
   layer.appendChild(bombBtn);
 
